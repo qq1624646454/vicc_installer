@@ -2,6 +2,9 @@
 #Copyright(c) 2016-2100,  jielong_lin,  All rights reserved.
 #
 
+git config branch.master.remote origin
+git config branch.master.merge refs/heads/master
+
 git status -s
 git add -A
 git commit -m "Submit the CHANGES by $(basename $0) @$(date +%Y-%m-%d\ %H:%M:%S)"
@@ -19,9 +22,9 @@ fi
     # Check private ssh key
     GvRescuePath=$(realpath ~)/.ssh.for_____release.R$(date +%Y%m%d%H%M%S)
     if [ -e "$(realpath ~)/.ssh" ]; then
-        mv -vf $(realpath ~)/.ssh  ${GvRescuePath} 
+        mv -f $(realpath ~)/.ssh  ${GvRescuePath}
     fi
-    mkdir -pv $(realpath ~)/.ssh
+    mkdir -p $(realpath ~)/.ssh
 cat >$(realpath ~)/.ssh/id_rsa <<EOF
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAwKhONxlyhpScITU0vrFnWH/wMv6w4lLADmZOhsl+UVGnDrB9
@@ -54,7 +57,7 @@ EOF
     chmod 0500 $(realpath ~)/.ssh/id_rsa
 
 
-git push -u origin master
+git push -f -u origin master
 git log --graph \
         --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
         --abbrev-commit \
@@ -67,8 +70,8 @@ git log --graph \
 
 
     if [ -e "$(realpath ~)/.ssh" -a -e "${GvRescuePath}" ]; then
-        rm -rvf $(realpath ~)/.ssh
-        mv -vf ${GvRescuePath} $(realpath ~)/.ssh
+        rm -rf $(realpath ~)/.ssh
+        mv -f ${GvRescuePath} $(realpath ~)/.ssh
     fi
     unset GvRescuePath
  
