@@ -1,0 +1,1558 @@
+#!/bin/bash
+# Copyright(c) 2016-2100   jielong.lin   All rights reserved.
+#
+# V0 - Original Template is built by jielong.lin @2016-2-1
+# V1 - Add "Lfn_Sys_PathConvertToAbsolutePath" by jielong.lin @2016-2-2
+
+#------------------------------
+# Constant Variable Definition
+#------------------------------
+CvPathFileForScript="`which $0`"
+CvScriptName="`basename  ${CvPathFileForScript}`"
+CvScriptPath="`dirname   ${CvPathFileForScript}`"
+
+if [ x"$CvScriptPath" = x"." ]; then
+    CvScriptPath="`pwd`"
+fi
+
+
+#------------------------------
+# Library Functions Definition
+#------------------------------
+
+function Lfn_Sys_DbgEcho()
+{
+    LvSdeCallerFileLineNo=`caller 0 | awk '{print $1}'`
+    LvSdeCallerFuncName="${FUNCNAME[1]}"
+    if [ -z "$1" -o x"$1" = x"" ]; then
+        echo "[jll] ${LvSdeCallerFileLineNo},${LvSdeCallerFuncName}"
+    else
+        echo "[jll] ${LvSdeCallerFileLineNo},${LvSdeCallerFuncName}: $1"
+    fi
+}
+
+
+## Usage:
+##     Lfn_Sys_FuncComment 
+function Lfn_Sys_FuncComment()
+{
+    LvSfcCallerFunc="${FUNCNAME[1]}"
+    LvSfcCallerFileLineNo=`caller 0 | awk '{print $1}'`
+    LvSfcPattern="function ${LvSfcCallerFunc}"
+    LvSfcLineNo=`grep -Enwr  "^${LvSfcPattern}" ${CvScriptPath}/${CvScriptName} | awk -F ':' '{print $1}'`
+    if [ -z "${LvSfcLineNo}" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Return due to the bad function format" 
+        return;
+    fi
+
+    LvSfcCnt=0
+    for LvSfcIdx in ${LvSfcLineNo}; do
+        LvSfcCnt=`expr ${LvSfcCnt} + 1`
+    done
+    if [ ${LvSfcCnt} -ne 1 -o ${LvSfcLineNo} -lt 0 ]; then
+        Lfn_Sys_DbgEcho "Sorry, exit due to the invalid function comment format" 
+        exit 0
+    fi
+    LvSfcContentLineNo=`expr ${LvSfcLineNo} - 1`
+    if [ ${LvSfcContentLineNo} -lt 0 ]; then
+        return;
+    fi
+    LvSfcContentStartLineNo=${LvSfcContentLineNo} 
+    LvSfcContentEndLineNo=${LvSfcContentLineNo}
+
+    while [ ${LvSfcContentStartLineNo} -ne 0 ]; do 
+        LvTempContent=`sed -n "${LvSfcContentStartLineNo}p" ${CvScriptPath}/${CvScriptName} | grep -Ewn "^##"`
+        if [ -z "${LvTempContent}" ]; then
+            break;
+        fi
+        LvSfcContentStartLineNo=`expr ${LvSfcContentStartLineNo} - 1`
+    done
+ 
+    if [ ${LvSfcContentStartLineNo} -lt ${LvSfcContentEndLineNo} ]; then
+        echo "Error LineNo : ${LvSfcCallerFileLineNo}"
+        LvSfcContentStartLineNo=`expr ${LvSfcContentStartLineNo} + 1`
+        sed -n "${LvSfcContentStartLineNo},${LvSfcContentEndLineNo}p" ${CvScriptPath}/${CvScriptName} | sed 's/^#\{0,\}//'
+    fi
+    return;
+}
+
+
+
+## Usage:
+##     Lfn_Sys_CheckRoot
+## Details:
+##     If the current user isn't root, then exit directly.
+function Lfn_Sys_CheckRoot()
+{
+    if [ x"`whoami`" != x"root" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to invalid root privilege"
+        exit 0
+    fi
+    return;
+}
+
+
+## Usage:
+##     Lfn_Sys_GetAllUsers <oResult> 
+## Details:
+##     Get all users and output the result to <oResult> 
+## Example:
+##     Lfn_Sys_GetAllUsers oUserList 
+##     for oUser in ${oUserList}; do
+##         echo "User:${oUser}"
+##     done 
+function Lfn_Sys_GetAllUsers()
+{
+    if [ $# -ne 1 ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to the fatal parameter error" 
+        exit 0; 
+    fi
+    LvSgauResult="root"
+    LvSgauUsers=`cd /home/;find . -maxdepth 1 -a \( -path "./reposity" -o -path "./LogReposity" -o -path "./.*" -o -path "./lost+found" \)  -prune -o -type d -a -print | sed "1d"`
+    LvSgauRegUsers=`cat /etc/passwd | awk -F: '$3>=500' | cut -f 1 -d :`
+    # Access every user in /home 
+    for LvSgauUser in ${LvSgauUsers}; do
+        for LvSgauRegUser in ${LvSgauRegUsers}; do
+            if [ x"./${LvSgauRegUser}" = x"${LvSgauUser}" ]; then
+                LvSgauResult="${LvSgauResult} ${LvSgauRegUser}" 
+            fi
+        done
+    done
+    LvSgauResult=`echo ${LvSgauResult} | sed 's:\ :\\\ :g'`
+    eval $1="${LvSgauResult}"
+}
+
+
+  #----------------------------------
+  # ANSI Control Code
+  #----------------------------------
+  #   \033[0m 关闭所有属性
+  #   \033[01m 设置高亮度
+  #   \033[04m 下划线
+  #   \033[05m 闪烁
+  #   \033[07m 反显
+  #   \033[08m 消隐
+  #   \033[30m -- \033[37m 设置前景色
+  #   \033[40m -- \033[47m 设置背景色
+  #   \033[nA 光标上移n行
+  #   \033[nB 光标下移n行
+  #   \033[nC 光标右移n行
+  #   \033[nD 光标左移n行
+  #   \033[y;xH 设置光标位置
+  #   \033[2J 清屏
+  #   \033[K  清除从光标到行尾的内容
+  #   \033[s  保存光标位置
+  #   \033[u  恢复光标位置
+  #   \033[?25l 隐蔽光标
+  #   \033[?25h 显示光标
+  #-----------------------------------
+
+
+  # 黑:Black
+  # 红:Red
+  # 绿:Green
+  # 黄:Yellow
+  # 蓝:Blue
+  # 粉红:Pink
+  # 海蓝:SeaBlue
+  # 白:White
+
+CvAccOff="\033[0m"
+
+CvFgBlack="\033[30m"
+CvFgRed="\033[31m"
+CvFgGreen="\033[32m"
+CvFgYellow="\033[33m"
+CvFgBlue="\033[34m"
+CvFgPink="\033[35m"
+CvFgSeaBule="\033[36m"
+CvFgWhite="\033[37m"
+
+CvBgBlack="\033[40m"
+CvBgRed="\033[41m"
+CvBgGreen="\033[42m"
+CvBgYellow="\033[43m"
+CvBgBlue="\033[44m"
+CvBgPink="\033[45m"
+CvBgSeaBule="\033[46m"
+CvBgWhite="\033[47m"
+
+
+## Usage:
+##     Lfn_Sys_DbgColorEcho [CvFgXxx|CvBgXxx] [CvFgXxx|CvBgXxx] [TEXT] 
+## Details:
+##     Print the format <TEXT> with fg-color named [CvFgXxx] or bg-color named [CvBgXxx]
+## Parameter:
+##     [CvFgXxx]   - Foreground color
+##     [CvBgXxx]   - Background color 
+##     [TEXT] - The text to display on the standard output device.
+## Example:
+##     Lfn_Sys_DbgColorEcho ${CvFgRed} ${CvBgWhite} "hello World"
+##
+function Lfn_Sys_DbgColorEcho()
+{
+    LvSdceCallerFileLineNo=`caller 0 | awk '{print $1}'`
+    LvSdceCallerFuncName="${FUNCNAME[1]}"
+
+    LvSdceFgColor=""
+    LvSdceBgColor=""
+    LvSdceText=""
+
+    while [ $# -ne 0 ]; do
+    case $1 in
+    "\033[3"*)
+        if [ -z "${LvSdceFgColor}" ]; then
+            LvSdceFgColor=$1
+        fi
+        ;;
+    "\033[4"*)
+        if [ -z "${LvSdceBgColor}" ]; then
+            LvSdceBgColor=$1
+        fi
+        ;;
+    *)
+        if [ -z "${LvSdceText}" ]; then
+            LvSdceText=$1
+        fi 
+        ;;
+    esac
+    shift
+    done
+
+    if [ -z "${LvSdceText}" ]; then 
+        echo -e "${CvAccOff}${LvSdceFgColor}${LvSdceBgColor}"\
+                "\b[jll] ${LvSdceCallerFileLineNo},${LvSdceCallerFuncName}${CvAccOff}" 
+    else
+        echo -e "${CvAccOff}${LvSdceFgColor}${LvSdceBgColor}"\
+                "\b[jll] ${LvSdceCallerFileLineNo},${LvSdceCallerFuncName}: ${LvSdceText}${CvAccOff}" 
+    fi
+}
+
+
+## Usage:
+##     Lfn_Sys_ColorEcho [CvFgXxx|CvBgXxx] [CvFgXxx|CvBgXxx] [TEXT] 
+## Details:
+##     Print the format <TEXT> with fg-color named [CvFgXxx] or bg-color named [CvBgXxx]
+## Parameter:
+##     [CvFgXxx]   - Foreground color
+##     [CvBgXxx]   - Background color 
+##     [TEXT] - The text to display on the standard output device.
+## Example:
+##     Lfn_Sys_ColorEcho ${CvFgRed} ${CvBgWhite} "hello World"
+##
+function Lfn_Sys_ColorEcho()
+{
+    LvSceFgColor=""
+    LvSceBgColor=""
+    LvSceText=""
+
+    while [ $# -ne 0 ]; do
+    case $1 in
+    "\033[3"*)
+        if [ -z "${LvSceFgColor}" ]; then
+            LvSceFgColor=$1
+        fi
+        ;;
+    "\033[4"*)
+        if [ -z "${LvSceBgColor}" ]; then
+            LvSceBgColor=$1
+        fi
+        ;;
+    *)
+        if [ -z "${LvSceText}" ]; then
+            LvSceText=$1
+        fi 
+        ;;
+    esac
+    shift
+    done
+
+    echo -e "${CvAccOff}${LvSceFgColor}${LvSceBgColor}${LvSceText}${CvAccOff}" 
+}
+
+
+## Usage:
+##     Lfn_Sys_GetEachUpperLevelPath <oPaths>
+## Details:
+##     Get the each level path towards upper 
+## Parameter:
+##     oPaths - output each level paths 
+## Example:
+##     Lfn_Sys_GetEachUpperLevelPath oPaths 
+##     OldIFS=$IFS
+##     IFS=:
+##     for My_Path in $My_Paths; do
+##         echo "--> $My_Path"
+##     done
+##     IFS=$OldIFS
+##
+function Lfn_Sys_GetEachUpperLevelPath()
+{
+    if [ -z "$1" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    LvGadoulPaths=""
+    LvGadoulPath=`pwd`
+    while [ x"${LvGadoulPath}" != x -a x"${LvGadoulPath}" != x"/" ]; do
+        if [ -z "${LvGadoulPaths}" ]; then
+            LvGadoulPaths="${LvGadoulPath}"
+        else
+            LvGadoulPaths="${LvGadoulPaths}:${LvGadoulPath}"
+        fi
+
+        #LvGadoulBasename=`basename "${LvGadoulPath}"`
+        #LvGadoulPath=`echo "${LvGadoulPath}" | sed "s/\/${LvGadoulBasename}//"`
+        LvGadoulPath=`cd ${LvGadoulPath}/..;pwd`
+    done
+
+    LvGadoulPaths=`echo "${LvGadoulPaths}" | sed "s/\ /\\\\\ /g"`
+    if [ -z "${LvGadoulPaths}" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    eval $1="${LvGadoulPaths}"
+}
+
+
+## Usage:
+##     Lfn_Sys_GetSameLevelPath <oPaths> <iKeywordString>
+## Details:
+##     Get the path on the same level path with <iKeywordString> from the parent path
+##     based on the current path
+## Parameter:
+##     oPaths - output the specified path
+## Example:
+##     Lfn_Sys_GetSameLevelPath  oResult ".repo frameworks dalvik libnativehelper"
+##     if [ ! -z "${oResult}" ]; then
+##         echo "${oResult}"
+##     fi
+##
+## Note: Error as follows
+##      Lfn_Sys_GetSameLevelPath  GvRootPath ".git" | tee -a  log.txt
+##
+function Lfn_Sys_GetSameLevelPath()
+{
+    if [ $# -ne 2 -o -z "$2" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    LvSgslpKeywords="$2"
+    eval $1=""
+
+    # visit every location from the tails of the current path
+    Lfn_Sys_GetEachUpperLevelPath LvSgslpPaths
+    OldIFS=$IFS
+    IFS=:
+    for LvSgslpPath in ${LvSgslpPaths}; do
+        IFS=$OldIFS
+        echo
+        echo "Matching:\"${LvSgslpKey}\""
+        echo "  ├──SearchPath= \"${LvSgslpPath}\""
+        for LvSgslpKey in ${LvSgslpKeywords}; do
+            LvSgslpEntrys="$(ls -a ${LvSgslpPath})"
+            for LvSgslpEntry in ${LvSgslpEntrys}; do
+                if [ x"${LvSgslpEntry}" = x"${LvSgslpKey}" ]; then
+        echo "  │  ├──Matching= \"${LvSgslpEntry}\" (Hit)"
+                    LvSgslpPath=`echo "${LvSgslpPath}" | sed "s/\ /\\\\\ /g"`
+                    eval $1="${LvSgslpPath}"
+                    IFS=$OldIFS
+        echo
+        echo "Done-Success: \"${LvSgslpPath}\""
+                    echo
+                    return 0
+                fi
+        echo "  │  ├──Matching= \"${LvSgslpEntry}\""
+            done
+        done
+        IFS=:
+    done
+    IFS=$OldIFS
+    echo
+    echo "Done-Failure: FinalPath=\"${LvSgslpPath}\""
+    echo
+    return 0
+}
+
+
+## Lfn_Sys_Rotate &
+## GvBgPid=$!
+## sleep 20
+## kill -9 ${GvBgPid} 
+##
+function Lfn_Sys_Rotate()
+{
+    LvSrInterval=0.05
+    LvSrTcount="0"
+
+    while true; do
+        LvSrTcount=`expr ${LvSrTcount} + 1`
+        case  ${LvSrTcount}  in
+        1)
+            echo -ne "\b-"
+            sleep  ${LvSrInterval}
+        ;;
+        2)
+            echo -ne "\b\\"
+            sleep  ${LvSrInterval}
+        ;;
+        3)
+            echo -ne "\b|"
+            sleep  ${LvSrInterval}
+        ;;
+        4)
+            echo -ne "\b/"
+            sleep  ${LvSrInterval}
+        ;;
+        *)
+            LvSrTcount="0"
+            sleep  ${LvSrInterval}
+        ;;
+        esac
+    done
+}
+
+## Lfn_Sys_PathConvertToAbsolutePath <oAbsolutePath> <iPathFile|iPath> 
+##
+function Lfn_Sys_PathConvertToAbsolutePath()
+{
+    if [ $# -ne 2 ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    LvSpctapTarget=$2
+
+    # Check if the parameter <iPathFile>|<iPath> is valid, including convert "~/" to the absolute path
+    LvSpctapFlag=$(echo ${LvSpctapTarget} | grep -E "^~")
+    if [ ! -z "${LvSpctapFlag}" ]; then
+        LvSpctapTarget=$(echo ${LvSpctapTarget} | sed "s/^~//g")
+        LvSpctapTarget=$(echo ${LvSpctapTarget} | sed "s#^/##g")
+        LvSpctapTarget="${HOME}/${LvSpctapTarget}"
+    fi
+    # Check if the config file path start with "/"
+    LvSpctapFlag=$(echo "${LvSpctapTarget}" | grep -E "^/")
+    if [ -z "${LvSpctapFlag}" ]; then
+        LvSpctapTarget="$(pwd)/${LvSpctapTarget}"
+    fi
+
+    if [ x"${LvSpctapTarget}" != x"/" ]; then
+        LvSpctapTarget="${LvSpctapTarget%%/}"
+    fi
+    eval $1="${LvSpctapTarget}"
+}
+
+
+
+
+
+## Usage:
+##     Lfn_File_SearchSymbol -S <SYMBOL>  -F <ScopeFiles...> -M <MatchMode>
+## Details:
+##     Search the <SYMBOL> from <ScopeFiles...> as <MatchMode>
+##     output the matched information. 
+## Parameter:
+##     <SYMBOL> - specified symbol used for matching search file location.
+##     <ScopeFile> - specified the files used to be searched.
+##     <MatchMode> - specified the matching as precise or comprehensive.
+##                   one of the values:
+##                   0 - precise (default)
+##                   1 - comprehensive 
+## Example:
+##     Lfn_File_SearchSymbol --Symbol="main"  --File=*.c --File=*.java --File=*.cpp --Mode=0
+##
+function Lfn_File_SearchSymbol()
+{
+    CvPreciseFlags="-Fwnr"
+    CvComprehensiveFlags="-Fnr"
+
+    LvFssSymbol=""
+    LvFssFile=""
+    LvFssFileSwitch=1
+    LvFssMode="0"
+    LvFssFlags="${CvPreciseFlags}"
+
+    while [ $# -ne 0 ]; do
+    case $1 in
+    --Symbol=*)
+        if [ -z "${LvFssSymbol}" ]; then
+            LvFssSymbol=`echo $1 | sed -e "s/--Symbol=//g" -e "s/,/ /g"`
+        fi
+        ;;
+    --File=*)
+        if [ x"${LvFssFileSwitch}" = x"1" ]; then
+            LvFssTempFileString="`echo $1 | sed -e 's/--File=//g' -e 's/,/ /g'`"
+            if [ x"${LvFssTempFileString}" = x"*" ]; then
+                LvFssFile="*"
+                LvFssFileSwitch=0
+            else 
+                if [ ! -z "${LvFssTempFileString}" ]; then
+                    LvFssFile="${LvFssFile} ${LvFssTempFileString}"
+                fi
+            fi
+        fi
+        ;;
+    --Mode=*)
+        LvFssMode=`echo $1 | sed -e "s/--Mode=//g" -e "s/,/ /g"`
+        ;;
+    *)
+        ;;
+    esac
+    shift
+    done
+    if [ -z "${LvFssSymbol}" -o -z "${LvFssFile}" ]; then
+        Lfn_Sys_FuncComment
+        return;
+    fi
+
+    if [ x"${LvFssMode}" = x"1" ]; then
+        LvFssFlags=${CvComprehensiveFlags}
+    fi
+
+
+    if [ x"${LvFssFile}" = x"*" ]; then
+        echo "jll: maybe take more long time to find all files by *"
+        find `pwd` -type f | while read LvFssLine; do
+            LvFssMatch=`grep ${LvFssFlags} "${LvFssSymbol}" "${LvFssLine}" --color=always`
+            if [ x"$?" = x"0" ]; then
+                Lfn_Sys_ColorEcho  ${CvFgBlack}  ${CvBgWhite}    " ${LvFssLine} "
+                Lfn_Sys_ColorEcho  "${LvFssMatch}"
+                echo
+            fi
+        done
+        echo
+        Lfn_Sys_ColorEcho ${CvBgRed} ${CvFgYellow} " Done"
+        echo
+        exit 0
+    fi 
+ 
+    for LvFssFl in ${LvFssFile}; do
+        find `pwd` -type f -a -name "${LvFssFl}" -print | while read LvFssLine; do
+            LvFssMatch=`grep ${LvFssFlags} "${LvFssSymbol}" "${LvFssLine}" --color=always`
+            if [ x"$?" = x"0" ]; then
+                Lfn_Sys_ColorEcho  ${CvFgBlack}  ${CvBgWhite}    " ${LvFssLine} "
+                Lfn_Sys_ColorEcho  "${LvFssMatch}"
+                echo
+            fi
+        done
+    done
+    echo
+    Lfn_Sys_ColorEcho ${CvBgRed} ${CvFgYellow} " Done"
+    echo
+}
+
+
+
+## Usage:
+##     Lfn_File_DeleteMatchLine <iString>  <iFile>
+## Details:
+##     Delete the lines which are matched by the specified <iString> from file <iFile>
+## Example:
+##     Lfn_File_DeleteMatchLine "jielong.lin"  "./test"
+##
+function Lfn_File_DeleteMatchLine()
+{
+    if [ -z "$1" -o -z "$2" -o ! -e "$2" ]; then
+        Lfn_Sys_FuncComment
+        return 0
+    fi
+    LvFdmlString=$1
+    LvFdmlFile=$2
+    LvFdmlLines=`grep -Fwnr "${LvFdmlString}" "${LvFdmlFile}" | awk -F ':' '{print $1}'`
+    LvFdmlIdx=0
+    for LvFdmlLine in ${LvFdmlLines}; do
+        LvFdmlLine=`expr ${LvFdmlLine} - ${LvFdmlIdx}`;
+        sed "${LvFdmlLine}"d -i ${LvFdmlFile};
+        echo "[GOOD] ${LvFdmlFile}:${LvFdmlLine} is delelted"
+        LvFdmlIdx=`expr ${LvFdmlIdx} + 1`;
+    done
+}
+
+## Usage:
+##     Lfn_File_DeletePreciseMatchLine <iString>  <iFile>
+## Details:
+##     Delete the lines which are matched by the specified <iString> from file <iFile>
+## Example:
+##     Lfn_File_DeletePreciseMatchLine "/jie/long/"  "/home/jielong.lin/1.txt"
+##
+function Lfn_File_DeletePreciseMatchLine()
+{
+    if [ -z "$1" -o -z "$2" -o ! -e "$2" ]; then
+        Lfn_Sys_FuncComment
+        return
+    fi
+    LvFdpmlString="$1"
+    LvFdpmlFile="$2"
+    LvFdmlLines=$(grep -Fwnr "${LvFdpmlString}" "${LvFdpmlFile}" | awk -F ':' '{print $1}')
+    LvFdpmlSets=$(grep -Fwr  "${LvFdpmlString}" "${LvFdpmlFile}")
+    if [ -z "${LvFdpmlSets}" ]; then
+    #    Lfn_Sys_DbgEcho "Sorry, Return Because dont find the match line"
+        return
+    fi
+
+    declare -i LvFdpmlIdx=0
+    declare -a LvFdpmlList
+    for LvFdpmlEntry in ${LvFdpmlSets}; do
+       LvFdpmlList[LvFdpmlIdx]="${LvFdpmlEntry}"
+       LvFdpmlIdx=`expr ${LvFdpmlIdx} + 1`;
+    done
+
+    # for (( LvFdpmlIdx=0 ; LvFdpmlIdx<${#LvFdpmlList[@]} ; LvFdpmlIdx++ )) do
+    #    echo "${LvFdpmlList[LvFdpmlIdx]}"
+    # done
+
+    LvFdpmlIdx=0
+    for LvFdpmlLine in ${LvFdmlLines}; do
+    #    echo "#${LvFdpmlList[LvFdpmlIdx]} #${LvFdpmlString}"
+        if [ x"${LvFdpmlList[LvFdpmlIdx]}" = x"${LvFdpmlString}" ]; then
+            LvFdpmlLine=$(expr ${LvFdpmlLine} - ${LvFdpmlIdx})
+            sed "${LvFdpmlLine}"d -i ${LvFdpmlFile}
+        fi
+        LvFdpmlIdx=`expr ${LvFdpmlIdx} + 1`;
+    done 
+
+    unset LvFdpmlIdx
+    unset LvFdpmlList
+    unset LvFdpmlString
+    unset LvFdpmlFile
+}
+
+
+## Usage: 
+##     Lfn_File_BatchModifyFileName <iOld> <iNew>
+## Details:
+##     The file names which contain the <iOld> to <iNew> under the current path. 
+## Parameter:
+##     <iOld> - the pattern string as be replaced 
+##     <iNew> - the target string. 
+## Example:
+##        Lfn_File_BatchModifyFileName "aaa" "bbb"
+## 
+function Lfn_File_BatchModifyFileName() 
+{
+    if [ $# -ne 2 ]; then
+        Lfn_Sys_FuncComment
+        return 0
+    fi
+
+    LvFbmfnFiles=`find . -type f`
+
+    for LvFbmfnFile in ${LvFbmfnFiles}; do
+        if [ "${LvFbmfnFile}" = "$0" ]; then
+            continue
+        fi
+        LvFbmfnTargetFile=`echo ${LvFbmfnFile} | sed "s/$1/$2/g"`
+        if [ "${LvFbmfnFile}" = "${LvFbmfnTargetFile}" ]; then
+            continue
+        else
+            mv ${LvFbmfnFile} ${LvFbmfnTargetFile}
+        fi
+    done
+}
+
+
+## Usage:
+##     Lfn_File_CheckIfExistSymbol <oResult> <iFlag> <iFile>
+## Details:
+##     Check if the file <iFile> has already contained the flag <iFlag>
+##     If Contained, <oResult> is 1.
+##     If Not Contain, <oResult> is 0. 
+## Example:
+##     iFlag="### Modification by Vanquisher for /etc/fstab ###"
+##     Lfn_File_CheckIfExistSymbol oResult "$strFlag" "/etc/fstab"
+##     if [ ${oResult} -eq 1 ]; then
+##         echo "Modified"
+##     else
+##         echo "Un-modified"
+##     fi
+function Lfn_File_CheckIfExistSymbol()
+{
+    if [ $# -ne 3 ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to the fatal parameter error" 
+        exit 0; 
+    fi
+
+    if [ -z "$2" -o -z "$3" -o ! -e "$3" ]; then
+        Lfn_Sys_FuncComment
+        eval $1="0"
+        return; 
+    fi
+
+    LvFciesFlag=`grep -iwnr "$2" $3`  
+    if [ -z "${LvFciesFlag}" ]; then
+        eval $1="0"
+    else
+        eval $1="1" 
+    fi
+}
+
+
+
+## Usage:
+##     Lfn_File_GetMatchLine <oResult> <iKeyWord> <iFilePath>
+## Details:
+##     Get the Line Number of the File located in "<FilePath>" if "<KeyWord>" is
+##     matched successfully. Save the result to <oResult>
+## Parameter:
+##     <iKeyWord> - specified string used for matching search file location.
+##     <iFilePath> - specify the file path.
+##     <oResult> - out the file line as the result.
+## Example:
+##     Lfn_File_GetMatchLine oFileLine "main" "/home/1.txt"
+##     if [ ! -z "${oFileLine}" ]; then
+##         echo "Line: ${oFileLine}"
+##     fi
+##
+function Lfn_File_GetMatchLine()
+{
+    if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to error usage"
+        Lfn_Sys_FuncComment
+        exit 0
+    fi  
+
+    if [ ! -e "$3" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit because dont exist \"$3\""
+        exit 0
+    fi  
+
+    # LvFgmlKeyword is only single line, so it doesnt need to be contained by the single quotes.
+    LvFgmlKeyword=$(echo -e "$2" | sed "s#\/#\\\/#g")
+    LvFgmlKeyword=$(echo -e "${LvFgmlKeyword}" | sed "s:	:\\\\t:g")
+    LvFgmlKeyword=$(echo -e "${LvFgmlKeyword}" | sed "s:\[:\\\[:g")
+    LvFgmlKeyword=$(echo -e "${LvFgmlKeyword}" | sed "s:\]:\\\]:g")
+    LvFgmlKeyword=$(echo -e "${LvFgmlKeyword}" | sed "s:\*:\\\*:g")
+
+    # Maybe the result contains the break line, and it will cause
+    # the error that cannt find command.
+    # Transform the line break symbol to the one space symbol
+    LvFgmlLineNo=""
+    for LvFgmlLineNoItem in $(sed -n "/${LvFgmlKeyword}/=" $3); do
+        if [ -z "${LvFgmlLineNo}" ]; then
+            LvFgmlLineNo="${LvFgmlLineNoItem}"
+        else
+            LvFgmlLineNo="${LvFgmlLineNo} ${LvFgmlLineNoItem}"
+        fi
+    done
+    # Space is not recognised in the eval command. So it should be transferred.
+    LvFgmlLineNo=$(echo -e "${LvFgmlLineNo}" | sed "s:\ :\\\\ :g")
+#    if [ -z "${LvFgmlLineNo}" ]; then
+#        Lfn_Sys_DbgEcho "Sorry, Dont find the line which is matched" 
+#    fi  
+
+    eval $1="${LvFgmlLineNo}"
+}
+
+
+## Usage:
+##     Lfn_File_GetReverseMatchLine <oResult> <iKeyWord> <iFilePath>
+## Details:
+##     Get the Line Number of the File located in "<iFilePath>" if "<iKeyWord>" is
+##     matched successfully.Then reverse the result and save it to <oResult> 
+##
+function Lfn_File_GetReverseMatchLine()
+{
+    Lfn_File_GetMatchLine LvFgrmlLines "$2" "$3"
+    LvFgrmlLineSets=""
+    for LvFgrmlLine in ${LvFgrmlLines}; do
+        LvFgrmlLineSets="${LvFgrmlLine} ${LvFgrmlLineSets}"
+    done
+    LvFgrmlLines="${LvFgrmlLineSets}"
+    LvFgrmlLines=`echo ${LvFgrmlLines} | sed 's#\ #\\\ #g'`
+    eval $1="${LvFgrmlLines}"
+}
+
+
+##
+## Usage:
+##     Lfn_File_GetFirstFullMatchLine oFileLine "/home/jielong.lin" "/home/jielong.lin/1.txt"
+##     if [ ! -z "${oFileLine}" ]; then
+##         echo "Line: ${oFileLine}"
+##     fi
+##
+function Lfn_File_GetFirstFullMatchLine()
+{
+    if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to error usage"
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    if [ ! -e "$3" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit because dont exist \"$3\""
+        exit 0
+    fi
+
+    LvFgfmlSet=$(grep -wn "$2" "$3" | awk -F ':' '{print $1}')
+    if [ -z "${LvFgfmlSet}" ]; then
+        eval $1=""
+        return
+    fi
+    declare -a LvFgfmlLines
+    declare -i LvFgfmlCnt=0
+    declare -i LvFgfmlId=0
+    for LvFgfmlLineNo in ${LvFgfmlSet}; do
+        LvFgfmlLines[LvFgfmlId]=${LvFgfmlLineNo}
+        LvFgfmlId=$(expr ${LvFgfmlId} + 1)
+    done
+    LvFgfmlCnt=${#LvFgfmlLines[@]}
+
+    LvFgfmlList=$(grep -w "$2" "$3")
+    LvFgfmlId=0
+    for LvFgfmlItem in ${LvFgfmlList}; do
+        if [ x"${LvFgfmlItem}" = x"$2" ]; then
+           break;
+        fi
+        LvFgfmlId=$(expr ${LvFgfmlId} + 1)
+    done
+    if [ LvFgfmlId != LvFgfmlCnt ]; then
+        eval $1=${LvFgfmlLines[LvFgfmlId]}
+        unset LvFgfmlLines
+        unset LvFgfmlCnt
+        unset LvFgfmlId
+        return;
+    fi
+    unset LvFgfmlLines
+    unset LvFgfmlCnt
+    unset LvFgfmlId
+ 
+    eval $1=""
+}
+
+
+## Usage:
+##     Lfn_File_GetFileTailLine <oResult> <iFile>
+## Detail:
+##     Get the line number at the end of the file.
+## Exmaple:
+##     Lfn_File_GetFileTailLine oResult  "~/1.txt"
+##     echo "EndLine: ${oResult}"
+function Lfn_File_GetFileTailLine()
+{
+    if [ -z "$2" -o ! -e "$2" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit because dont exist \"$2\""
+        exit 0
+    fi
+
+    LvFgftlLineNo=`sed -n '$=' $2`
+    eval $1="${LvFgftlLineNo}"
+}
+
+
+
+## Usage:
+##     Lfn_File_InsertAfterMatchLine <iKeyWord> <iFile>  <iString>
+## Details:
+##     Insert the "<iString>" to the next line of the File located in "<iFile>"
+##     if "<iKeyWord>" is matched successfully. Or Insert the "<iString>" to the
+##     tail of the File.
+## Parameter:
+##     <iKeyWord> - specified string used for matching search file location.
+##     <iFilePath> - specify the file path.
+##     <iString> - specify the content which is inserted.  # Example:
+## Example:
+##     Lfn_File_InsertAfterMatchLine  "main" "/home/1.txt" "jielong.lin"
+##
+function Lfn_File_InsertAfterMatchLine()
+{
+    if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    if [ ! -e "$2" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit because dont exist \"$2\""
+        exit 0
+    fi
+
+    Lfn_File_GetReverseMatchLine  LvFiamlLines "$1" "$2"
+    for LvFiamlLine in ${LvFiamlLines}; do
+        sed "$LvFiamlLine a $3" -i $2
+        Lfn_Sys_ColorEcho ${CvBgBlue}  ${CvFgWhite} "Done: insert at next line from ${LvFiamlLine}"
+    done
+    return
+}
+
+## Lfn_File_DownloadFromNet <URL>
+function Lfn_File_DownloadFromNet()
+{
+    if [ -z "$1" -o x"$1" = x"" ]; then
+        Lfn_Sys_DbgEcho "Sorry, exit due to the parameter is null"
+        exit 0
+    fi
+
+    LvFdfnPathfile="$1"
+    LvFdfnFile=`basename "${LvFdfnPathfile}"`
+    wget -c ${LvFdfnPathfile} -O ${LvFdfnFile}
+}
+
+
+
+## Usage:
+##     Lfn_Line_CheckIfExistSymbol <oResult> <iSymbol> <iContent>
+##
+## Details:
+##     Return 1 if exist.
+##     Return 0 if not exist.
+##
+## Sample:
+##     Lfn_Line_CheckIfExistSymbol oResult  "main" "hello world, main entry"
+##     echo "$oResult"
+function Lfn_Line_CheckIfExistSymbol()
+{
+    if [ -z "$1" -o -z "$2" -o -z "$3" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to error usage"
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    # LvCiseKeyword is only single line, so it doesnt need to be contained by the single quotes.
+    LvCiseKeyword=$(echo -e "$2" | sed "s#\/#\\\/#g")
+    LvCiseKeyword=$(echo -e "${LvCiseKeyword}" | sed "s:\t:\\\t:g")
+    LvCiseKeyword=$(echo -e "${LvCiseKeyword}" | sed "s:\[:\\\[:g")
+    LvCiseKeyword=$(echo -e "${LvCiseKeyword}" | sed "s:\]:\\\]:g")
+    LvCiseKeyword=$(echo -e "${LvCiseKeyword}" | sed "s:\*:\\\*:g")
+
+    # $3 isn't transition is used by echo command
+    #LvCiseLine=$(echo -e "$3" | sed "s#\/#\\\/#g")
+    #LvCiseLine=$(echo -e "${LvCiseLine}" | sed "s:\t:__:g")
+    #LvCiseLine=$(echo -e "${LvCiseLine}" | sed "s:\[:\\\[:g")
+    #LvCiseLine=$(echo -e "${LvCiseLine}" | sed "s:\]:\\\]:g")
+    #LvCiseLine=$(echo -e "${LvCiseLine}" | sed "s:\*:\\\*:g")
+
+    LvCiseResult=$(echo "$3" | sed -n "/${LvCiseKeyword}/=")
+    if [ -z "${LvCiseResult}" ]; then
+        eval $1="0"
+    else
+        eval $1="1"
+    fi 
+}
+
+
+
+## Lfn_Cursor_EchoConfig [on|off] 
+function Lfn_Cursor_EchoConfig()
+{
+    if [ -z "$1" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+    if [ x"$1" = x"off" ]; then
+        echo -e "${CvAccOff}\033[?25l${CvAccOff}"
+    fi
+    if [ x"$1" = x"on" ]; then
+        echo -e "${CvAccOff}\033[?25h${CvAccOff}"
+    fi
+}
+
+
+## Lfn_Cursor_Position <oXData> <oYData>
+##
+## Details:
+##     Get the cursor position included (x,y)
+## 
+function Lfn_Cursor_Position()
+{
+    if [ $# -ne 2 -o -z "$1" -o -z "$2" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    echo -ne '\e[6n'; read -sdR LvCpPosition;
+    #LvCpXPos=$(echo "${LvCpPosition#*[}" | cut -d ';' -f 1)
+    #LvCpYPos=$(echo "${LvCpPosition#*[}" | cut -d ';' -f 2)
+
+    LvCpXPos=$(echo "${LvCpPosition}" | awk -F ';'  '{print $2}')
+    LvCpYPos=$(echo "${LvCpPosition}" | awk -F ';'  '{print $1}')
+
+    eval $1="${LvCpXPos}"
+    eval $2="${LvCpYPos}"
+}
+
+
+
+## Usage:
+##     Lfn_Cursor_Mov <iOffset> <iDirection> 
+## Details:
+##     <iOffset>: it must be a digit
+##     <iDirection>: up | down | left | right 
+## Note:
+##     iOffset=0 is the same to xNum=1
+## Sample:
+##     Lfn_Cursor_Mov 100 "up" 
+##     sleep 5
+##     Lfn_Cursor_Move 100  "right" 
+## 
+function Lfn_Cursor_Mov()
+{
+    if [ -z "$1" -o -z "$2" ]; then
+        Lfn_Sys_FuncComment
+        Lfn_Sys_DbgEcho "Sorry,Exit due to the invalid usage" 
+        exit 0
+    fi
+
+    echo $1 | grep -E '[^0-9]' >/dev/null && LvCmFlag="0" || LvCmFlag="1";
+    if [ x"${LvCmFlag}" = x"0" ]; then
+        Lfn_Sys_DbgEcho "Sorry,Exit because the parameter1 isn't digit" 
+        exit 0 
+    fi
+
+    if [ x"$2" != x"up" -a x"$2" != x"down" -a x"$2" != x"left" -a x"$2" != x"right" ]; then
+        Lfn_Sys_DbgEcho "Sorry,Exit because the parameter2 isn't up|down|left|right"
+        exit 0 
+    fi  
+
+    case $2 in
+    up)
+        #'\c' or '-n' - dont break line
+        echo -ne "${CvAccOff}\033[$1A${CvAccOff}"
+    ;;
+    down)
+        #'\c' or '-n' - dont break line
+        echo -ne "${CvAccOff}\033[$1B${CvAccOff}"
+    ;;
+    right)
+        #'\c' or '-n' - dont break line
+        echo -ne "${CvAccOff}\033[$1C${CvAccOff}"
+    ;;
+    left)
+        #'\c' or '-n' - dont break line
+        echo -ne "${CvAccOff}\033[$1D${CvAccOff}"
+    ;;
+    *)
+    ;;
+    esac
+}
+
+
+
+
+## Usage:
+##     Lfn_Cursor_Move <xNum>  <yNum> 
+## Details:
+##     xNum: Left/Right towards
+##     yNum: Up/Down    towards
+## Note:
+##     xNum=0 is the same to xNum=1
+##     yNum=0 is the same to yNum=1 
+## Sample:
+##     Lfn_Cursor_Move 100  4
+##     sleep 5
+##     Lfn_Cursor_Move 100  10 
+## 
+function Lfn_Cursor_Move()
+{
+    if [ -z "$1" -o -z "$2" ]; then
+        Lfn_Sys_FuncComment
+        Lfn_Sys_DbgEcho "Sorry,Exit due to the invalid usage" 
+        exit 0
+    fi
+
+    echo $1 | grep -E '[^0-9]' >/dev/null && LvCmFlag="0" || LvCmFlag="1";
+    if [ x"${LvCmFlag}" = x"0" ]; then
+        Lfn_Sys_FuncComment
+        Lfn_Sys_DbgEcho "Sorry,Return because the parameter1 isn't digit" 
+        return; 
+    fi
+
+    echo $2 | grep -E '[^0-9]' >/dev/null && LvCmFlag="0" || LvCmFlag="1";
+    if [ x"${LvCmFlag}" = x"0" ]; then
+        Lfn_Sys_FuncComment
+        Lfn_Sys_DbgEcho "Sorry,Return because the parameter2 isn't digit" 
+        return; 
+    fi
+
+    #'\c' or '-n' - dont break line
+    LvCmTargetLocation="${CvAccOff}\033[$2;$1H${CvAccOff}"
+    echo -ne "${LvCmTargetLocation}"
+}
+
+
+function Lfn_Stdin_Flush()
+{
+    # clear all data continuely from stdin
+    while read -s -t 1 -n 1; do
+        continue
+    done
+}
+
+
+
+## Usage:
+##     Lfn_Stdin_Read <oKeyData>
+## Note:
+##     Shell cant recognize the space and enter keycode.
+##     So the space and enter keycode will be ignored.
+## Sample:
+##     Lfn_Stdin_Read  oKeyData
+##     echo "Get: $oKeyData"
+function Lfn_Stdin_Read()
+{
+    if [ -z "$1" ]; then
+        Lfn_Sys_DbgEcho "Sorry, Exit due to the bad usage"
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    LvSrData=""
+
+    # Read one byte from stdin
+    trap : 2   # enable to capture the signal from keyboard input ctrl_c
+    while read -s -n 1 LvSrData
+    do
+        case "${LvSrData}" in
+        "")
+            read -s -n 1 -t 1 LvSrData
+            case "${LvSrData}" in
+            "[")
+                read -s -n 1 -t 1 LvSrData
+                case "${LvSrData}" in
+                "A")
+                    LvSrData="KeyUp"
+                ;;
+                "B")
+                    LvSrData="KeyDown"
+                ;;
+                "C") 
+                    LvSrData="KeyRight"
+                ;;
+                "D")
+                    LvSrData="KeyLeft"
+                ;;
+                *)
+                    Lfn_Sys_DbgEcho "Dont Recognize KeyCode: ${LvSrData}"
+                    continue;
+                ;;
+                esac 
+            ;;
+            "")
+                LvSrData="KeyEsc"
+            ;;
+            *)
+                Lfn_Sys_DbgEcho "Dont Recognize KeyCode: ${LvSrData}"
+                continue;
+            ;;
+            esac
+        ;;
+        "")
+            # Space Key and Enter Key arent recognized
+            LvSrData="KeySpaceOrEnter"
+            break;
+        ;;
+        *)
+            break;
+        ;;
+        esac
+        [ ! -z "${LvSrData}" ] && break;
+    done
+    trap "" 2  # disable to capture the singal from keyboard input ctrl_c
+    eval $1="${LvSrData}"
+}
+
+## Lfn_Stdin_GetDigit <oResult> [<prompt>]
+##
+## Lfn_Stdin_GetDigit  oResult  "hello world: "
+## echo "Result: $oResult"
+function Lfn_Stdin_GetDigit()
+{
+    if [ ! -z "$2" ]; then
+        LvSgdCmd='read -p "$2 " LvSgdNum'
+    else
+        LvSgdCmd='read LvSgdNum'
+    fi
+
+    LvSgdNum=""
+    while [ -z "${LvSgdNum}" ]; do
+        eval ${LvSgdCmd}   
+        echo ${LvSgdNum} | grep -E '[^0-9]' >/dev/null && LvSgdNum="" || break; 
+    done
+
+    eval $1="${LvSgdNum}"
+}
+
+
+
+
+## Lfn_MenuUtils <oResult> <iSettingsType> <iX> <iY> [<iTitle>]
+##
+## Please set the FnVimIdeSettingsUtils[] before call Lfn_MenuUtils
+##    The Format of the FnVimIdeSettingsUtils
+##      declare -a GvMenuUtilsContent=(
+##          "YourItemName"
+##          "Item1"
+##          "Item2"
+##      )
+##
+## <iSettingsType> :
+##    "Input"  : input mode
+##    "Select" : select mode
+## <iX> and <iY> : Start with 1
+##
+##
+## Example:
+##     declare -a GvMenuUtilsContent=(
+##         "YourItemName"
+##         "Item1"
+##         "Item2"
+##         "Item3"
+##         "Item4"
+##     )
+##     Lfn_MenuUtils oResult  "Select" 7 4 "hello"
+##     echo "$oResult"
+##     read
+##     unset GvMenuUtilsContent
+##     declare -a GvMenuUtilsContent=(
+##         "YourItemName"
+##         "Item1"
+##         "Item2"
+##         "Item3"
+##     Lfn_MenuUtils oResult  "Input" 7 4 "hello"
+##     echo "$oResult"
+##     exit 0
+##
+function Lfn_MenuUtils()
+{
+    if [ $# -gt 5 ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi
+
+    # Check if parameter is digit and Converse it to a valid parameter 
+    echo "$3" | grep -E '[^0-9]' >/dev/null && LvVisuX="0" || LvVisuX="$3";
+    if [ x"${LvVisuX}" = x"0" ]; then
+        LvVisuX=1
+    fi
+    echo "$4" | grep -E '[^0-9]' >/dev/null && LvVisuY="0" || LvVisuY="$4";
+    if [ x"${LvVisuY}" = x"0" ]; then
+        LvVisuY=1
+    fi
+
+    # Check if parameter is a valid 
+    if [ x"$2" != x"Input" -a x"$2" != x"Select" ]; then
+        Lfn_Sys_FuncComment
+        exit 0
+    fi 
+
+    #LvVisuCount=$[${#GvMenuUtilsContent[@]} / 2]
+    LvVisuCount=$(( ${#GvMenuUtilsContent[@]} / 1 ))
+    if [ x"$2" = x"Select" -a ${LvVisuCount} -lt 1 ]; then
+        # Select Mode but none item to be selected
+        echo "Sorry, Cant Run Select Mode Because of None items to be selected."
+        return
+    fi
+
+    # Select for configuration guide
+    LvVisuFocus=99999 #None Focus
+    LvVisuNextFocus=0
+
+    while [ 1 ]; do
+        ##
+        ## Render UI
+        ##
+        if [ x"$2" = x"Select" ]; then # Input Mode
+            Lfn_Cursor_EchoConfig "off"
+        fi
+        clear
+        LvRenderLine=${LvVisuY}
+        if [ x"$5" != x ]; then # exist title
+            Lfn_Cursor_Move ${LvVisuX} ${LvRenderLine} 
+            echo "$5"
+            LvRenderLine=$(( LvRenderLine + 1 ))
+        fi
+        if [ ${LvVisuCount} -gt 0 ]; then
+            for (( LvVisuIdx=0 ; LvVisuIdx<LvVisuCount ; LvVisuIdx++ )) do
+                if [ x"$2" = x"Select" ]; then
+                    Lfn_Cursor_Move ${LvVisuX} ${LvRenderLine} 
+                    if [ ${LvVisuFocus} -eq ${LvVisuIdx} ]; then
+                        if [ ${LvVisuFocus} -ne ${LvVisuNextFocus} ]; then
+                            # Cancel the focus item reversed style
+                            echo -ne "├── ${GvMenuUtilsContent[LvVisuIdx]}"
+                            LvVisuFocus=99999 # lose the focus
+                        else
+                            # When Focus is the same to Next Focus, such as only exist one item
+                            # Echo By Reversing its color 
+                            echo -ne "├── ${CvAccOff}\033[07m${GvMenuUtilsContent[LvVisuIdx]}${CvAccOff}"
+                            LvVisuFocus=${LvVisuNextFocus}
+                        fi
+                    else
+                        if [ ${LvVisuNextFocus} -eq ${LvVisuIdx} ]; then
+                            # Echo By Reversing its color 
+                            echo -ne "├── ${CvAccOff}\033[07m${GvMenuUtilsContent[LvVisuIdx]}${CvAccOff}"
+                            LvVisuFocus=${LvVisuNextFocus}
+                        else
+                            echo -ne "├── ${GvMenuUtilsContent[LvVisuIdx]}"
+                        fi
+                    fi
+                    LvRenderLine=$(( LvRenderLine + 1 ))
+                fi
+                if [ x"$2" = x"Input" ]; then
+                    Lfn_Cursor_Move ${LvVisuX} ${LvRenderLine}
+                    echo -ne "├── ${GvMenuUtilsContent[LvVisuIdx]}"
+                    LvRenderLine=$(( LvRenderLine + 1 ))
+                fi
+            done
+            ##
+            ## Drive UI
+            ##
+
+            if [ x"$2" = x"Select" ]; then
+                Lfn_Cursor_Move ${LvVisuX} "$(( LvRenderLine + 4 ))"
+                # echo "Focus:${LvVisuFocus} NextFocus:${LvVisuNextFocus} Count:${LvVisuCount}"
+                echo "Focus:${LvVisuFocus} Count:${LvVisuCount}"
+                Lfn_Stdin_Read LvCustuiData
+                case "${LvCustuiData}" in
+                "KeyUp"|"k")
+                    if [ ${LvVisuNextFocus} -eq 0 ]; then
+                        LvVisuNextFocus=${LvVisuCount}
+                    fi
+                    LvVisuNextFocus=$(expr ${LvVisuNextFocus} - 1)
+                ;;
+                "KeyDown"|"j")
+                    LvVisuNextFocus=$(expr ${LvVisuNextFocus} + 1)
+                    if [ ${LvVisuNextFocus} -eq ${LvVisuCount} ]; then
+                        LvVisuNextFocus=0
+                    fi
+                    ;;
+                "KeySpaceOrEnter")
+                    echo ""
+                    LvVisuFocus=${LvVisuNextFocus}
+                    Lfn_Cursor_EchoConfig "on"
+                    break
+                    ;;
+                "q")
+                    LvVisuFocus=99999
+                    echo ""
+                    echo "Exit: Quit due to your choice: q"
+                    echo ""
+                    Lfn_Cursor_EchoConfig "on"
+                    exit 0
+                    ;;
+                *)
+                    ;;
+                esac
+                Lfn_Cursor_EchoConfig "on"
+            fi
+            if [ x"$2" = x"Input" ]; then
+                Lfn_Cursor_Move ${LvVisuX} "$(( LvRenderLine + 1 ))"
+                echo "[Please Input A String (Dont repeat name with the above)]"
+                Lfn_Cursor_Move ${LvVisuX} "$(( LvRenderLine + 2 ))"
+                read LvVisuData
+                if [ -z "${LvVisuData}" ]; then
+                    echo ""
+                    continue
+                fi
+                if [ x"${LvVisuData}" = x"q" ]; then
+                    echo ""
+                    echo "Exit: due to your choice: q"
+                    echo ""
+                    exit 0 
+                fi
+                LvVisuIsLoop=0
+                if [ ${LvVisuCount} -gt 0 ]; then
+                    for (( LvVisuIdx=0 ; LvVisuIdx<LvVisuCount ; LvVisuIdx++ )) do
+                        if [ x"${GvMenuUtilsContent[LvVisuIdx]}" = x"${LvVisuData}" ]; then
+                            LvVisuIsLoop=1
+                            echo "Sorry, Dont repeat to name the above Items:\"${LvVisuData}\""
+                            echo ""
+                            break
+                        fi
+                    done
+                fi
+                if [ x"${LvVisuIsLoop}" = x"0" -a x"${LvVisuData}" != x ]; then
+                    eval $1=$(echo -e "${LvVisuData}" | sed "s:\ :\\\\ :g")
+                    unset LvVisuData
+                    unset LvVisuIdx
+                    unset LvVisuIsLoop
+                    break
+                fi
+            fi
+        else
+            if [ x"$2" = x"Select" ]; then
+                eval $1=""
+                return
+            fi
+            if [ x"$2" = x"Input" ]; then
+                Lfn_Cursor_Move ${LvVisuX} "$(( LvRenderLine + 1 ))"
+                echo "[Please Input A String (Dont repeat name with the above)]"
+                Lfn_Cursor_Move ${LvVisuX} "$(( LvRenderLine + 2 ))"
+                read LvVisuData
+                echo ""
+                if [ x"${LvVisuData}" != x ]; then
+                    eval $1="${LvVisuData}"
+                    break 
+                fi
+                if [ x"${LvVisuData}" = x"q" ]; then
+                    echo "Exit: due to your choice: q"
+                    echo ""
+                    break 
+                fi
+            fi 
+        fi
+    done
+
+    if [ x"$2" = x"Select" ]; then
+        if [ ${LvVisuFocus} -ge 0 -a ${LvVisuFocus} -lt ${LvVisuCount} ]; then
+            echo ""
+            eval $1=$(echo -e "${GvMenuUtilsContent[LvVisuFocus]}" | sed "s:\ :\\\\ :g")
+        fi
+    fi
+ 
+    unset LvVisuNextFocus
+    unset LvVisuFocus
+    unset LvVisuCount
+}
+
+
+##
+##  declare -i GvPageUnit=10
+##  declare -a GvPageMenuUtilsContent=(
+##        "userdebug: It will enable the most debugging features for tracing the platform."
+##        "user1:      It is offically release, and it only disable debugging features."
+##        "user2:      It is offically release, and it only disable debugging features."
+##        "user3:      It is offically release, and it only disable debugging features."
+##        "user4:      It is offically release, and it only disable debugging features."
+##        "user5:      It is offically release, and it only disable debugging features."
+##        "user6:      It is offically release, and it only disable debugging features."
+##        "user7:      It is offically release, and it only disable debugging features."
+##        "user8:      It is offically release, and it only disable debugging features."
+##        "user9:      It is offically release, and it only disable debugging features."
+##  )
+##  Lfn_PageMenuUtils LvpcResult  "Select" 7 4 "***** PhilipsTV Product Type (q: quit) *****"
+##  if [ x"${LvpcResult}" = x"${GvPageMenuUtilsContent[0]}" ]; then
+##      LvpcOptionBuild=userdebug
+##      echo "hit"
+##  fi
+##
+function Lfn_PageMenuUtils()
+{
+    if [ $# -gt 5 ]; then
+        exit 0
+    fi
+
+    # Check if parameter is digit and Converse it to a valid parameter
+    echo "$3" | grep -E '[^0-9]' >/dev/null && LvPmuX="0" || LvPmuX="$3";
+    if [ x"${LvPmuX}" = x"0" ]; then
+        LvPmuX=1
+    fi
+    echo "$4" | grep -E '[^0-9]' >/dev/null && LvPmuY="0" || LvPmuY="$4";
+    if [ x"${LvPmuY}" = x"0" ]; then
+        LvPmuY=1
+    fi
+
+    # Check if parameter is a valid
+    if [ x"$2" != x"Input" -a x"$2" != x"Select" ]; then
+        exit 0
+    fi
+
+    LvPageMenuUtilsContentCount=${#GvPageMenuUtilsContent[@]}
+    LvPageIdx=0
+    LvPageCount=$((LvPageMenuUtilsContentCount/GvPageUnit)) 
+    while [ ${LvPageMenuUtilsContentCount} -gt 0 ]; do
+        # Loading the specified page to display
+        declare -a GvMenuUtilsContent
+        for(( LvIdx=$((GvPageUnit*LvPageIdx)); LvIdx < LvPageMenuUtilsContentCount; LvIdx++ )) {
+            if [ ${LvIdx} -lt $((GvPageUnit*LvPageIdx+GvPageUnit)) ]; then
+                GvMenuUtilsContent[LvIdx-$((GvPageUnit*LvPageIdx))]="${GvPageMenuUtilsContent[${LvIdx}]}"
+            else
+                break
+            fi
+        }
+        if [ ${LvIdx} -ne ${LvPageMenuUtilsContentCount} ]; then
+            GvMenuUtilsContent[LvIdx-$((GvPageUnit*LvPageIdx))]="NextPage.$((LvPageIdx+1))"
+        fi
+        Lfn_MenuUtils LvResult  "$2" $3 $4 "$5"
+        unset GvMenuUtilsContent
+        if [ x"${LvResult}" = x"NextPage.$((LvPageIdx+1))" ]; then
+            LvPageIdx=$((LvPageIdx+1))
+            continue
+        fi
+        break
+    done
+    eval $1=$(echo -e "${LvResult}" | sed "s:\ :\\\\ :g")
+}
+
+
+
+
+
+
+##################################################
+#  jielong.lin: Customized Functions 
+##################################################
+
+
+function ____Fn_Usage()
+{
+cat >&1 << EOF
+
+[DESCRIPTION]
+    Help user to learn about more usage of ${CvScriptName}
+    Version: v1 - 2016-2-2 
+
+
+[USAGE-DETAILS] 
+
+    ${CvScriptName} [help]
+        Offer user for that how to use this command.
+
+    ${CvScriptName} -s=<Symbol> -f=<FileType> [-f=<FileType> ... ] [-m=<0|1>] 
+        -s equal to specify a symbol, such as Variable or Function Name.
+        -f equal to specify a file type for filterring, such as *.c, and it 
+           support for the multilse file type options.
+        -m equal to specify a mode between 0 and 1.
+            0 - precise (default)
+            1 - comprehensive 
+     Example:
+        ${CvScriptName} -s=main -f=*.c -f=*.cpp -f=*.java -f=*.s -m=0
+        ${CvScriptName} -s="KeyboardInputMapper::processKey() keyCode=" -f="*.c" -f=*.cpp -f=*.java -f=*.cc -m=0
+
+EOF
+}
+
+
+
+function Fn_App_Handle()
+{
+    while [ $# -ne 0 ]; do
+        case $1 in
+        xx)
+            echo "xx"
+        ;;
+        yy|zz)
+            echo "yy|zz"
+        ;;
+        *)
+            Fn_Usage | more
+            exit 0 
+        ;;
+        esac
+        shift
+    done
+}
+
+function Fn_App_Handle2()
+{
+    for ac_arg; do
+        case $ac_arg in
+            --hello=*)
+                echo "ac_arg: $ac_arg"
+                GvHello=`echo $ac_arg | sed -e "s/--hello=//g" -e "s/,/ /g"`
+                echo "value: $GvHello"
+            ;;
+            *)
+            ;;
+        esac
+    done
+}
+
+
+#-----------------------
+# The Main Entry Point
+#-----------------------
+
+
+
+#################################################################################
