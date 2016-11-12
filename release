@@ -1,0 +1,103 @@
+
+Revision 2016.11.09.00
+----------------------------------------------------------------------------------------------------
+[1].Add the nice-looking status bar for vim by intaking vim-airline with vim-airline-themes.
+    Note:
+      PuTTY should be configured on windows platform, as follows:
+      <1>.Category-->Windows-->Appearance-->Font settings-->Change-->"Consolas for Powerline"
+          If not find "Consolas for Powerline", please copy the below fonts into C:\Windows\Fonts
+          ~/.local/share/fonts/CONSOLAB-Powerline.ttf
+          ~/.local/share/fonts/CONSOLAI-Powerline.ttf
+          ~/.local/share/fonts/CONSOLAZ-Powerline.ttf
+          ~/.local/share/fonts/CONSOLA-Powerline.ttf
+      <2>.Category-->Windows-->Translation-->Remote character set: UTF-8
+[2].Intake tagbar for C,C++,Java, and map F9 to fast perform the objects relationship 
+    of the current file
+
+
+
+Revision 2016.10.24.00
+----------------------------------------------------------------------------------------------------
+[1].Fix the error absolute path to the related path started with ~ for sys_tags,cpp_tags,java_tags 
+
+
+
+
+Revision 2016.10.23.00
+----------------------------------------------------------------------------------------------------
+[1].Add java_tags plugin, namely jdk8 API reference manual by ctags tools, but the size is added
+    with 160MB
+
+
+Revision 2016.10.14.00
+----------------------------------------------------------------------------------------------------
+[1].Add sys_tags plugin, namely System Standard APIs Ctags from /usr/include and /usr/local/include
+[2].Remove cpp_tags to support for c file
+[3].Fix the preview window is closed when leavel the insert mode. Such as input ", the hint
+    function prototype  windows is closed automatically.  
+
+
+Revision 2016.10.13.00
+----------------------------------------------------------------------------------------------------
+[1].Vim automatically load JDK8 runtime environment on startup stage for javacomplete2.
+    For javacomplete2 required jdk8 environment and avoid to conflict with another jdk has been
+    already installed in system to apply some usecases.
+[2].Introduce javacomplete2 to VICC.
+
+
+Revision 2016.09.29.00
+----------------------------------------------------------------------------------------------------
+[1].Integrate all plguins and configurates to stick those in 
+    ~/.vim ~/.vimrcs ~/.vimrc ~/.jllsystem
+    Modularize rc in ~/.vimrc files by source, as follows:
+        source ~/.vimrcs/pathogen.vimrc
+        source ~/.vimrcs/general_settings.vimrc
+        source ~/.vimrcs/ctags.vimrc
+        source ~/.vimrcs/cpp_tags.vimrc
+        source ~/.vimrcs/taglist.vimrc
+        source ~/.vimrcs/cscope.vimrc
+        source ~/.vimrcs/omnicppcomplete.vimrc
+        source ~/.vimrcs/file.vimrc
+        source ~/.vimrcs/keyboard_maps.vimrc
+        source ~/.vimrcs/colorscheme.vimrc
+[2].Support for struct member is completed automatically by '.', '->' in c file
+
+
+Revision 2016.09.22.00
+----------------------------------------------------------------------------------------------------
+[1].Fix the issue about compared change content isn't high-light seen. 
+vim should load color_jll.vim rather than default.vim.
+color_jll.vim can let compared change content be high-light seen, and default.vim can't.
+[2].Introduce pathogen to manage vim plugins
+
+
+
+
+Revision 2016.09.19.00
+----------------------------------------------------------------------------------------------------
+--->Fix the BUG:
+    vicc can't edit a new file, as follows:
+    vicc newfile
+
+--->Fix the BUG: 
+    can't 'autmatically backup the ~/.vim and ~/.vimrc into 
+    ~/.vim.orig_for_vicc and ~/.vimrc.orig_for_vicc
+
+
+
+
+Revision 2016.09.17.00
+----------------------------------------------------------------------------------------------------
+1.Support for automatically popup menu when encounter . ->  during CPP editting.
+2.Support for <TAB> to trigger <c-x><c-o> based on . -> 
+3.Support for automatically complete (),{},[], and so on
+4.Support for automatically load CPP standard tags
+5.Introduce omnicppcomplete feature to VIM for cpp automatically complete.
+6.Automatically update modifiedtime for the new file created by this tool.
+7.Optimize the edit prompt
+8.Add binary edited feature.
+9.Automatically Create the File comment template for c,cpp,java,shell and so on.
+
+BUG:
+    tags isn't updated by automatically
+    java/c automatically complete work abnormal
