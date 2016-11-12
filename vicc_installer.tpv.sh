@@ -464,7 +464,7 @@ fi
 
 
     # Check private ssh key
-    GvRescuePath=$(realpath ~)/.ssh.for_csdn_release.R$(date +%Y%m%d%H%M%S)
+    GvRescuePath=$(realpath ~)/.ssh.for_____release.R$(date +%Y%m%d%H%M%S)
     if [ -e "$(realpath ~)/.ssh" ]; then
         mv -vf $(realpath ~)/.ssh  ${GvRescuePath} 
     fi
@@ -501,19 +501,22 @@ EOF
     chmod 0500 $(realpath ~)/.ssh/id_rsa
 
     GvReleasePath="R$(date +%Y%m%d_%H%M%S)"
-    GvReleasePath="$(realpath ~)/___csdn_release_${GvReleasePath}"
+    GvReleasePath="$(realpath ~)/________release_${GvReleasePath}"
     if [ -e ${GvReleasePath} ]; then
         rm -rvf ${GvReleasePath}
     fi
     mkdir -pv ${GvReleasePath}
 
     cd ${GvReleasePath}
+    #git clone git@code.csdn.net:qq1624646454/vicc.git
     git clone git@code.csdn.net:qq1624646454/vicc.git
     cd -
     if [ ! -e "${GvReleasePath}/vicc" ]; then
-        echo "JLL-IDE: Fail to install because fail to git clone git@code.csdn.net:qq1624646454/vicc.git"
+        #echo "JLL-IDE: Fail to install because git clone git@code.csdn.net:qq1624646454/vicc.git"
+        echo "JLL-IDE: Fail to install because git clone git@github.com:qq1624646454/vicc.git"
     else
         cd ${GvReleasePath}/vicc
+        # Update the release note for vicc_installer
         if [ -e "${GvReleasePath}/vicc/release" ]; then
             cp -rvf ${GvReleasePath}/vicc/release ${CvScriptPath} 
         fi
@@ -532,18 +535,10 @@ EOF
  
             echo
             echo "JLL-IDE: OKay for install vicc from ${GvReleasePath}/vicc"
-            [ -e "${GvReleasePath}" ] && rm -rvf ${GvReleasePath}
-            if [ -e "$(realpath ~)/.ssh" -a -e "${GvRescuePath}" ]; then
-                rm -rvf $(realpath ~)/.ssh
-                mv -vf ${GvRescuePath} $(realpath ~)/.ssh
-            fi
-            unset GvRescuePath
-            unset GvReleasePath
             echo
-            exit 0
         else
             echo
-            echo "JLL-IDE: don't exist \"$(realpath ~)/.jllsystem\""
+            echo "JLL-IDE: Failure for install vicc from ${GvReleasePath}/vicc"
             echo
         fi
     fi
