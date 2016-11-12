@@ -521,7 +521,9 @@ EOF
             cp -rvf ${GvReleasePath}/vicc/release ${CvScriptPath} 
         fi
         if [ -e "${GvReleasePath}/vicc/install.sh" ]; then
+            cd ${GvReleasePath}/vicc
             ./install.sh
+            cd - >/dev/null
             echo
             echo "JLL-IDE: OKay for install vicc from ${GvReleasePath}/vicc"
             echo

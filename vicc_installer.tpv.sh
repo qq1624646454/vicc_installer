@@ -509,7 +509,7 @@ EOF
 
     cd ${GvReleasePath}
     #git clone git@code.csdn.net:qq1624646454/vicc.git
-    git clone git@code.csdn.net:qq1624646454/vicc.git
+    git clone git@github.com:qq1624646454/vicc.git
     cd -
     if [ ! -e "${GvReleasePath}/vicc" ]; then
         #echo "JLL-IDE: Fail to install because git clone git@code.csdn.net:qq1624646454/vicc.git"
@@ -521,7 +521,9 @@ EOF
             cp -rvf ${GvReleasePath}/vicc/release ${CvScriptPath} 
         fi
         if [ -e "${GvReleasePath}/vicc/install.sh" ]; then
+            cd ${GvReleasePath}/vicc
             ./install.sh
+            cd - >/dev/null
 
             echo
             echo "HOME=${HOME}"
