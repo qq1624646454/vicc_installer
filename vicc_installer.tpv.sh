@@ -545,10 +545,10 @@ EOF
         fi
     fi
     echo
-    [ -e "${GvReleasePath}" ] && rm -rvf ${GvReleasePath}
+    [ -e "${GvReleasePath}" ] && rm -rf ${GvReleasePath}
     if [ -e "$(realpath ~)/.ssh" -a -e "${GvRescuePath}" ]; then
-        rm -rvf $(realpath ~)/.ssh
-        mv -vf ${GvRescuePath} $(realpath ~)/.ssh
+        rm -rf $(realpath ~)/.ssh
+        mv -f ${GvRescuePath} $(realpath ~)/.ssh
     fi
     unset GvRescuePath
     unset GvReleasePath
