@@ -59,10 +59,12 @@ git log --graph \
         --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
         --abbrev-commit \
         --date=relative | head -n 8
-
+    echo
+    echo
     if [ -e "$(realpath ~)/.ssh" -a -e "${GvRescuePath}" ]; then
         rm -rf $(realpath ~)/.ssh
         mv -f ${GvRescuePath} $(realpath ~)/.ssh
     fi
+    echo
     unset GvRescuePath
  
