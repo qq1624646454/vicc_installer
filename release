@@ -1,4 +1,12 @@
 
+Revision 2016.11.18.00
+----------------------------------------------------------------------------------------------------
+[1].Perform update the ctags,cscope database files for the current project in current path.
+    vicc --update or vicc -u
+[2].Map [F12] for performing the function to run vicc -u in normal mode.
+
+
+
 Revision 2016.11.09.00
 ----------------------------------------------------------------------------------------------------
 [1].Add the nice-looking status bar for vim by intaking vim-airline with vim-airline-themes.
