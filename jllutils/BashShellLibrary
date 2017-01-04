@@ -3,6 +3,7 @@
 #
 # V0 - Original Template is built by jielong.lin @2016-2-1
 # V1 - Add "Lfn_Sys_PathConvertToAbsolutePath" by jielong.lin @2016-2-2
+# V2 - Optimize "eval output with ()" by jielong.lin @2016-11-17
 
 #------------------------------
 # Constant Variable Definition
@@ -466,8 +467,8 @@ function Lfn_Sys_PathConvertToAbsolutePath()
 ##
 function Lfn_File_SearchSymbol()
 {
-    CvPreciseFlags="-Fwnr"
-    CvComprehensiveFlags="-Fnr"
+    CvPreciseFlags="-Ewnr"
+    CvComprehensiveFlags="-Enr"
 
     LvFssSymbol=""
     LvFssFile=""
@@ -1395,8 +1396,11 @@ function Lfn_MenuUtils()
 
     if [ x"$2" = x"Select" ]; then
         if [ ${LvVisuFocus} -ge 0 -a ${LvVisuFocus} -lt ${LvVisuCount} ]; then
-            echo ""
-            eval $1=$(echo -e "${GvMenuUtilsContent[LvVisuFocus]}" | sed "s:\ :\\\\ :g")
+            _LvVisuResult=$(echo -e "${GvMenuUtilsContent[LvVisuFocus]}" | sed -e "s:\ :\\\\ :g")
+            _LvVisuResult=${_LvVisuResult//(/\\(}
+            _LvVisuResult=${_LvVisuResult//)/\\)}
+            eval $1=${_LvVisuResult}
+            unset _LvVisuResult
         fi
     fi
  
@@ -1471,7 +1475,11 @@ function Lfn_PageMenuUtils()
         fi
         break
     done
-    eval $1=$(echo -e "${LvResult}" | sed "s:\ :\\\\ :g")
+    LvResult=$(echo -e "${LvResult}" | sed "s:\ :\\\\ :g")
+    LvResult=${LvResult//(/\\(}
+    LvResult=${LvResult//)/\\)}
+    eval $1=${LvResult}
+    #eval $1=$(echo -e "${LvResult}" | sed "s:\ :\\\\ :g")
 }
 
 
