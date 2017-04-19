@@ -5,7 +5,6 @@ JLLPATH="$(which $0)"
 JLLPATH="$(dirname ${JLLPATH})"
 source ${JLLPATH}/BashShellLibrary
 
-
 #
 # Location the which project associated with PhilipsTV
 #
@@ -24,7 +23,11 @@ if [ ! -e "${GvPrjRootPath}" ]; then
 fi
 echo
 
-GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
+#GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
+GvRepoPath="${GvPrjRootPath}"
+
+# only for 2k17 asta N
+GvPrjRootPath="${GvPrjRootPath}/android/n-base"
 
 ## Fn_Sort_ThreeFields_SplitByDot  "<PrefixString>"  "<Descend>|<Ascend>"
 ##
@@ -141,25 +144,24 @@ function Fn_Sort_ThreeFields_SplitByDot()
 }
 
 
-
-
 function Fn_Mediatek_VersionInfo()
 {
 cat >&1 << EOF
 
- $ vim apollo/sys_build/tpv/PH7M_EU_5596/Makefile
+ $ vim device/mediatek_common/vm_linux/project_x/sys_build/tpvision/QM16XE_F/Makefile
  ...
- 759 # path customization for project_x/target/$(OS_TARGET)
- 760 export OS_TARGET      := linux-2.6.18
- 761
- 762 TARGET         := linux_mak
- 763 BUILD_NAME     := PH7M_EU_5596 apollo-mp-1501-1550-5-001-15-001-206-001
- 764 MODEL_NAME     := PH7M_EU_5596
- 765 CUSTOMER       := tpv
- 766 CUSTOM         := philips/tpv/EU
- 767 CUST_MODEL     := $(MODEL_NAME)
- 768 SERIAL_NUMBER  := IDTV
- 769 THIS_ROOT      := $(shell pwd)
+ 425 # path customization for project_x/target/$(OS_TARGET)
+ 426 export OS_TARGET      := linux-2.6.18
+ 427
+ 428 TARGET         := linux_mak
+ 429 BUILD_NAME     := QM16XE_F DTV_X_IDTV1402_368_001_147_001
+ 430 MODEL_NAME     := QM16XE_F
+ 431 CUSTOMER       := tpvision
+ 432 COMMON         := mtk_common
+ 433 CUSTOM         := mtk/dvb/demo2#?
+ 434 CUST_MODEL     := $(MODEL_NAME)
+ 435 SERIAL_NUMBER  := IDTV
+ 436 THIS_ROOT      := $(shell pwd)
  ...
 
 EOF
@@ -170,13 +172,11 @@ EOF
     #
     # Checking if the project is valid
     #
-    LvmvVariable="${GvPrjRootPath}/apollo/sys_build/tpv"
+    #LvmvVariable="${GvPrjRootPath}/device/mediatek_common/vm_linux/project_x/sys_build/tpvision"
+    LvmvVariable="${GvRepoPath}/vm_linux/project_x/sys_build/tpvision"
     if [ ! -e "${LvmvVariable}" ]; then
-        Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${GvPrjRootPath}/apollo/sys_build/tpv '"
-        unset LvmvVariable
-        unset GvMenuUtilsContent
-        unset GvMenuUtilsContentCnt
-        return
+        #LvmvVariable="${GvPrjRootPath}/device/mediatek_common/vm_linux/project_x/sys_build/tpv"
+        LvmvVariable="${GvRepoPath}/vm_linux/project_x/sys_build/tpv"
     fi
     if [ -e "${LvmvVariable}" ]; then
         LvmvSubVariable="$(cd ${LvmvVariable};ls)"
@@ -238,13 +238,9 @@ function Fn_PhilipsTV_VersionInfo()
     #
     # Checking if the project is valid
     #
-    LvpvVariable="${GvPrjRootPath}/android/m-base/device/tpv"
+    LvpvVariable="${GvPrjRootPath}/device/tpvision"
     if [ ! -e "${LvpvVariable}" ]; then
-        Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${GvPrjRootPath}/apollo/sys_build/tpv '"
-        unset LvpvVariable
-        unset GvMenuUtilsContent
-        unset GvMenuUtilsContentCnt
-        return
+        LvpvVariable="${GvPrjRootPath}/device/tpv"
     fi
     if [ -e "${LvpvVariable}" ]; then
         LvpvSubVariable="$(cd ${LvpvVariable};ls)"
@@ -378,43 +374,59 @@ function Fn_PhilipsTV_Make_Tool_UPG()
 ##
 function Fn_PhilipsTV_Compilation()
 {
-    if [ ! -e "${GvPrjRootPath}/android/m-base/build/envsetup.sh" ]; then
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "File=\"${GvPrjRootPath}/android/m-base/build/envsetup.sh\"" 
+    if [ ! -e "${GvPrjRootPath}/build/envsetup.sh" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "File=\"${GvPrjRootPath}/build/envsetup.sh\"" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find the above file" 
         exit 0
     fi
 
 
     declare -a GvMenuUtilsContent=(
-        "Build_pkg:                            make -j8 mtk_build"
-        "Clean:                                make -j8 mtk_clean"
-        "ExoPlayerWrapper-ContentExplorer:     compile exoplayerwrapper and contentexplorer"
-        "Usage:                                compilation usage manual"
+        #"Build_pkg:           make -j8 mtk_build"
+        "Build__QM16XE_U_PKG:  ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U"
+        "Clean__QM16XE_U_PKG:  make -j8 mtk_clean"
+        #"Build_pkg__fullupg:  make -j8 mtk_build and upgmaker"
+        #"Usage:               compilation usage manual"
     )
     GvMenuUtilsContentCnt=${#GvMenuUtilsContent[@]}
 
     while [ 1 -eq 1 ]; do
         Lfn_MenuUtils GvResult  "Select" 7 4 "***** Execute Action MENU (q: quit no matter what) *****"
         if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+            if [ ! -e "${GvPrjRootPath}/device/tpvision/common/sde/upg/build_philipstv.sh" ]; then
+                echo
+                echo "JLL-Error: Not present the below script to compile code "
+                echo "JLL-Detail:${GvPrjRootPath}/device/tpvision/common/sde/upg/build_philipstv.sh"
+                echo
+                exit 0
+            fi
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
+            set_n
+            ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U 
+            cd - >/dev/null
+            echo
+        if [ 1 -ne 1 ]; then
+            clear
+            echo
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
             lunch
             echo
             make -j8 mtk_build 2>&1|tee make.mtk_build.log
             echo
         fi
+        fi
         if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
-            lunch
+            lunch QM16XE_U-userdebug 
             echo
-            rm -rf make.mtk_*.log
+            rm -rf make.mtk_*.log 2>/dev/null
+            rm -rf make_log.txt 2>/dev/null
             echo
             if [ -e "${GvPrjRootPath}/__${TARGET_PRODUCT}_Upg_Retail" ]; then
                 read -p "JLL: Remove \"${GvPrjRootPath}/__${TARGET_PRODUCT}_Upg_Retail if press [y]?  " LvChoice
@@ -434,27 +446,25 @@ function Fn_PhilipsTV_Compilation()
             echo
         fi
         if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
+        if [ 1 -ne 1 ]; then
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
             lunch
             echo
-            cd ${GvPrjRootPath}/android/m-base/device/tpv/common/plf/exoplayer/exoplayerwrapper
-            mm -B 2>&1|tee    ${GvPrjRootPath}/android/m-base/exoplayerwrapper_contentexplorer.log
+            make -j8 mtk_build 2>&1|tee make.mtk_build.log
             echo
-            cd ${GvPrjRootPath}/android/m-base/device/tpv/common/app/contentexplorer
-            mm -B 2>&1|tee -a ${GvPrjRootPath}/android/m-base/exoplayerwrapper_contentexplorer.log
-            cd - >/dev/null
+            Fn_PhilipsTV_Make_Full_UPG
             echo
         fi
-       if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+        fi
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+        if [ 1 -ne 1 ]; then
             clear
 cat >&1 <<EOF
 
-      cd ${GvPrjRootPath}/android/m-base
-      set_m
+      cd ${GvPrjRootPath}
       source build/envsetup.sh 
       lunch
   
@@ -462,7 +472,12 @@ cat >&1 <<EOF
 
       make -j8 mtk_build 2>&1 | tee make.mtk_build.log
 
+      #compile upg
+      cd device/tpvision/common/sde/upg/
+      ./upgmaker.sh QM16XE_U r f
+
 EOF
+        fi
         fi
         read -t 5 -p "JLL: Back to Execute Action Menu if press [y]?  " LvChoice
         if [ x"${LvChoice}" = x"y" ]; then
@@ -476,13 +491,31 @@ EOF
 }
 
 
+function Fn_PhilipsTV_GitPushToMaster()
+{
+    LvProject=$(repo info . | grep -E '^Project: ' | awk -F'Project: ' '{print $2}')
+    LvCurrentRevision=$(repo info . | grep -E 'Current revision: ' | awk -F'Current revision: ' '{print $2}')
+
+    if [ x"${LvProject}" = x -o x"${LvCurrentRevision}" = x ]; then
+        echo "JLL: Sorry to exit because can't get the valid information by 'repo info .'"
+        exit 0
+    fi
+    git push ssh://gerrit-master/${LvProject} HEAD:refs/for/${LvCurrentRevision} 
+}
+
+
+
 declare -a GvMenuUtilsContent=(
     "Query Software Version"
     "Query Mediatek Version"
     "Compilation: make or make clean"
-    "Reset And Clean Code Changes For Current Git Branch"
+    "Make Full upg Image : upg is only maked after Compilation"
+    "Make Tool upg Image : upg is only maked after Compilation"
+    "Git Push For LocalRepository To RemoteRepository"
     "All Git Repositores Status"
-    "Sync Latest Code And Checkout Version Into TPM171E_R.0.xxx.yyy.zzz"
+    "Sync Latest Code And Checkout Version Into QM16XE_UB_R0.xxx.yyy.zzz"
+    "Sync Latest Code And Checkout Version Into QM16XE_F_R0.xxx.yyy.zzz"
+    "Sync Latest Code And Checkout Version Into QM16XE_U_R0.xxx.yyy.zzz"
 )
 Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
 
@@ -518,33 +551,38 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
 fi
 
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
     clear
-    # Find the same level path which contains .git folder
-    Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
-    if [ ! -e "${GvBranchGitPath}" ]; then
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvBranchGitPath}\"" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path" 
-        exit 0
-    fi
     echo
-    read -p "Ask @ run 'git clean -dfx;git reset --hard HEAD' if press [y]?    "  GvChoice
+    Fn_PhilipsTV_Make_Full_UPG
     echo
-    if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvBranchGitPath}
-        git clean -dfx
-        git reset --hard HEAD
-        git status -s
-        git log --graph \
-            --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
-            --abbrev-commit \
-            --date=relative | head -n 4 
-        cd - >/dev/null
-        echo
-    fi
     exit 0
 fi
 
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    clear
+    echo
+    Fn_PhilipsTV_Make_Tool_UPG
+    echo
+    exit 0
+fi
+
+
+
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    clear
+    echo
+    Fn_PhilipsTV_GitPushToMaster
+    echo
+    exit 0
+fi
+
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -557,42 +595,42 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
     exit 0
 fi
 
-
-## "Sync Latest Code And Checkout Version Into TPM171E_R.0.xxx.yyy.zzz"
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+## "Sync Latest Code And Checkout Version Into QM16XE_UB_R0.xxx.yyy.zzz"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
 
     echo
     read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
     if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvPrjRootPath}
+        cd ${GvRepoPath}
         repo sync
         cd -  >/dev/null
     fi
     echo
 
-    if [ ! -e "${GvPrjRootPath}/android/m-base/frameworks/.git" ]; then
+    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not Present \"${GvPrjRootPath}/android/m-base/frameworks/.git\"" 
+            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
         echo
         exit 0
     fi
     clear
-    cd ${GvPrjRootPath}/android/m-base/frameworks
+    cd ${GvPrjRootPath}/libcore
     declare -i GvPageUnit=10
     declare -i GvMenuID=0
     declare -a GvPageMenuUtilsContent
-    _GvVersionList=$(git tag -l TPM171E_R.0.*)
+    _GvVersionList=$(git tag -l QM16XE_UB_R0.15.*)
+    cd - >/dev/null
     if [ x"${_GvVersionList}" = x ]; then
         [ x"${GvPageUnit}" != x ] && unset GvPageUnit
         [ x"${GvMenuID}" != x ] && unset GvMenuID
         [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not find any version like TPM171E_R.0.* format!!!" 
+            "JLL-Check @ Not find any version like QM16XE_UB_R0.* format!!!" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
         echo
         exit 0 
@@ -600,27 +638,160 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
     for _GvVersionEntry in ${_GvVersionList}; do
         GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
     done
-    Fn_Sort_ThreeFields_SplitByDot "TPM171E_R" "Descend"
+    Fn_Sort_ThreeFields_SplitByDot "QM16XE_UB_R0" "Descend"
     Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
     if [ x"${GvResult}" = x ]; then
         echo
         exit 0
     fi
     echo
+    cd ${GvRepoPath}
     echo
-    repo forall -c \
-        'if [ x"$(git status -s)" != x ]; then \
-             read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
-         fi; \
-         if [ x"${__GvChoive}" = x"y" ]; then \
-             git clean -dfx; git reset --hard HEAD; \
-         fi; '
-
-    repo forall -c "git checkout ${GvResult}"
+    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
+                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                    fi; \
+                    if [ x"${__GvChoive}" = x"y" ]; then \
+                        git clean -dfx; git reset --hard HEAD; \
+                    fi; \
+                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
     echo
+    cd - >/dev/null
     echo
     exit 0
 fi
+
+
+## "Sync Latest Code And Checkout Version Into QM16XE_F_R0.xxx.yyy.zzz"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[8]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+
+    echo
+    read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
+    if [ x"${GvChoice}" = x"y" ]; then
+        cd ${GvRepoPath}
+        repo sync
+        cd -  >/dev/null
+    fi
+    echo
+
+    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
+        echo
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
+            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
+        echo
+        exit 0
+    fi
+    clear
+    cd ${GvPrjRootPath}/libcore
+    declare -i GvPageUnit=10
+    declare -i GvMenuID=0
+    declare -a GvPageMenuUtilsContent
+    _GvVersionList=$(git tag -l QM16XE_F_R0.15.*)
+    cd - >/dev/null
+    if [ x"${_GvVersionList}" = x ]; then
+        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+        [ x"${GvMenuID}" != x ] && unset GvMenuID
+        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+        echo
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
+            "JLL-Check @ Not find any version like QM16XE_F_R0.* format!!!" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
+        echo
+        exit 0 
+    fi
+    for _GvVersionEntry in ${_GvVersionList}; do
+        GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
+    done
+    Fn_Sort_ThreeFields_SplitByDot "QM16XE_F_R0" "Descend"
+    Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
+    if [ x"${GvResult}" = x ]; then
+        echo
+        exit 0
+    fi
+    echo
+    cd ${GvRepoPath}
+    echo
+    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
+                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                    fi; \
+                    if [ x"${__GvChoive}" = x"y" ]; then \
+                        git clean -dfx; git reset --hard HEAD; \
+                    fi; \
+                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
+    echo
+    cd - >/dev/null
+    echo
+    exit 0
+fi
+
+
+## "Sync Latest Code And Checkout Version Into QM16XE_U_R0.xxx.yyy.zzz"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[9]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+
+    echo
+    read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
+    if [ x"${GvChoice}" = x"y" ]; then
+        cd ${GvRepoPath}
+        repo sync
+        cd -  >/dev/null
+    fi
+    echo
+
+    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
+        echo
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
+            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
+        echo
+        exit 0
+    fi
+    clear
+    cd ${GvPrjRootPath}/libcore
+    declare -i GvPageUnit=10
+    declare -i GvMenuID=0
+    declare -a GvPageMenuUtilsContent
+    _GvVersionList=$(git tag -l QM16XE_U_R0.15.*)
+    cd - >/dev/null
+    if [ x"${_GvVersionList}" = x ]; then
+        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+        [ x"${GvMenuID}" != x ] && unset GvMenuID
+        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+        echo
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
+            "JLL-Check @ Not find any version like QM16XE_U_R0.* format!!!" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
+        echo
+        exit 0 
+    fi
+    for _GvVersionEntry in ${_GvVersionList}; do
+        GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
+    done
+    Fn_Sort_ThreeFields_SplitByDot "QM16XE_U_R0" "Descend"
+    Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
+    if [ x"${GvResult}" = x ]; then
+        echo
+        exit 0
+    fi
+    echo
+    cd ${GvRepoPath}
+    echo
+    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
+                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                    fi; \
+                    if [ x"${__GvChoive}" = x"y" ]; then \
+                        git clean -dfx; git reset --hard HEAD; \
+                    fi; \
+                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
+    echo
+    cd - >/dev/null
+    echo
+    exit 0
+fi
+
 
 
 unset GvMenuUtilsContent

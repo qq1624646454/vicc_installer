@@ -5,7 +5,7 @@
 #   Author:       jielong.lin
 #   Email:        493164984@qq.com
 #   DateTime:     2016-12-29 16:16:46
-#   ModifiedTime: 2017-01-04 11:26:51
+#   ModifiedTime: 2017-02-07 09:46:26
 
 JLLPATH="$(which $0)"
 JLLPATH="$(dirname ${JLLPATH})"
@@ -26,6 +26,7 @@ jielong.lin@xmbuilder03:~/workspace\$ vim ./conf.vicc_preview_API
 #
 declare -a  CONF_lstRelatedAPIs=(
     "[ )=]ASN1_[a-zA-Z0-9_]{1,}[(].*[)]"
+    "[ )=]Test_[a-zA-Z0-9_]{1,}\\(.*\\)[	 ]{0,}[{]{0,}]"
 )
 
 # set * to match all files
@@ -35,14 +36,15 @@ declare -a  CONF_lstFileType=(
     "*.cpp"
 )
 
-CONF_szRootPath="${HOME}/workspace/aosp_6.0.1_r10_selinux/device/tpvision/common/plf/mediaplayer"
+#CONF_szRootPath="${HOME}/workspace/aosp_6.0.1_r10_selinux/device/tpvision/common/plf/mediaplayer"
+CONF_szRootPath="$(pwd)"
 
 # those ignored path is started with @CONF_szRootPath
 #
-declare -i  CONF_lstIgnorePath=(
-    "external/opensource/openssl"
-    "external/third_party/wasabi"
-)
+#declare -i  CONF_lstIgnorePath=(
+#    "external/opensource/openssl"
+#    "external/third_party/wasabi"
+#)
 
 JLL-Choice:  Create the above template configure file Then edit it if press [y], or exit ?    
 EOF
