@@ -5,6 +5,80 @@ JLLPATH="$(which $0)"
 JLLPATH="$(dirname ${JLLPATH})"
 source ${JLLPATH}/BashShellLibrary
 
+__ssh_package=.__ssh_R$(date +%Y_%m_%d__%H_%M_%S)
+function __SSHCONF_Switching_Start()
+{
+    echo
+    if [ -e "${HOME}/.ssh" ]; then
+        echo "JLL: ~/.ssh will be moved to ${__ssh_package}"
+        mv -fv ${HOME}/.ssh  ${HOME}/${__ssh_package}
+        echo
+    fi
+    mkdir -pv ${HOME}/.ssh
+    chmod 0777 ${HOME}/.ssh
+    echo "JLL: Generate ~/.ssh/id_rsa belong to jielong.lin@tpv-tech.com"
+cat >${HOME}/.ssh/id_rsa <<EOF
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA30E5aVhLJYIp3exNWMIjKFTKd25oOxdw25oBJE4bDxS5yCsE
+IJOhNrlPGKzyo22q3tIpiuZg4Ld6l9n2BxNbSND2sezhr4TnikVPPgCZdcGmUGho
+OGkVM2CqTiEL2kL9qDS9vEOxg818nHhbiVuF7MVO0eij/Yk17/b+iDgSsmHJ5zcw
+DMdA4+jauXERyAzdfEzHbmmKbR6L2TIkMPqYFieFHpS7zGxssR0tPxqTKd7I9reI
+2b8rK2yTwCRnaWKTuKP+uOfLYrg0fdx/N88/X8sC6Vfw/qnaoPXoahW1cWDXH1G9
+K7Gn+mZxKqGSOZlybcPL+ZNknKZytkRZqc3WRQIDAQABAoIBAGZq9JyIPckSQoSl
+cAJE5X4OD+fkRXq+US7dIqL2FeHAP049taIAN9f0AP4v8QvaNqYLwbUP5OeSJHJf
+MkeisKDiBBoxsoMjtFixXR3zhnMICHUgwJcIVgqA0QAQlvBlBRrSPyyL3Xa6oOzj
+JhMIYpLxHSyczgZ0mMLiC3iQSLt913rdehD1y6aseinLyUuwembvxMZw2FIrSqy9
+pKi50Pp2dWQ3rq4M11K7GTe9wfqvIIWVVvnYlawV5SNLUXlK5G8LFS4N/tUN+nqk
+MCS7ooeeBKn9/UDjg7l5gDX/VqsCLBvCEO9mg8VT+jkUpE3nbEgO6gBsZ70mBnY9
+H1D/iu0CgYEA9y3Ve2bsdmUiDRiNdEOR2WiGtAQOdPeEW6cX/9ldwo+Dff9ZRjXO
+eTRjcDHUKmaHGmrrqyZnARAWrWZ9aVIGrPFHFyRAf/oApfJQYDHRtQ285rzKD3FQ
+4HIV3TtYfO7gf756xtyYXLSQvNaXEjTbYw+mlZTpBnXWKFnl7LwpwncCgYEA5zjT
+BbbgiIjxN56S0Ri8MCWRgeTwdmSIgz/m6+k0YEGu+H8GKmDvSmb7w2nxVuL1FhKQ
+BvQe8Kaxnsfu5xiKGNjJ2cSzlR86Bp3h+oVQun7fcAUf704B35DPu1nuM4IyN1zn
+gllsbGN10Eg7ZdSiucWcYbsqLMCGvgH6dux5wCMCgYEA9w7v350bYqdpJo/Q61GS
+WSzZ3tpjHNQ9jmJwYYEA7zQE6Q4uTDgBvTH45i5X811xUp1mGzaSJATRtdXIKlob
+ZAbx2JaahY/7z+JoJg4FnqMxmas/h7nqbbx6UBs+MfmNmQFptJTPEXJFbQpMC52b
+XuNIzR/+3j8vpDtezoWwc7cCgYBvszfeTtZxnxZItEZg1P40lDGS+rJfv3ljTn+T
+//jZd2G7kkG8P0/aNZ3ybT+1pbaYjycc9Nntj9nGxvdWlLhCAJiipy/KHme9wo/k
+onq5XYk7aH5g8OJeympQK8WzBHaV4D/G7MRAKFxF3l8zdmGWNSyy2eQp8mglandA
+9ERs2QKBgQCoYfcDBFi+bnr0USxBO2ysXOhkkzLzigos7WEeW+R56zmgqGiiw/o7
+vot6BuT0GQnWnhFGh/uEM5+b0Y4vfDKxDXXb4j5Cn6wSMC+Xyn/5XKTJAMleZZg9
+M1KJDNJyY9xEVITOo4KFxVTdmPWeuW8x+KRgpOT3Ws1OzBoSZXBo0g==
+-----END RSA PRIVATE KEY-----
+EOF
+    chmod 0400 ${HOME}/.ssh/id_rsa
+cat >${HOME}/.ssh/config<<EOF
+
+Host url
+HostName 172.20.30.2
+User jielong.lin
+Port 29420
+IdentityFile ~/.ssh/id_rsa
+
+Host url-tpemaster
+HostName 172.16.112.71
+User jielong.lin
+Port 29418
+IdentityFile ~/.ssh/id_rsa
+
+EOF
+    chmod 0720 ${HOME}/.ssh/config
+    echo
+}
+
+
+function __SSHCONF_Switching_End()
+{
+    if [ -e "${HOME}/${__ssh_package}" ]; then
+        if [ -e "${HOME}/.ssh" ]; then
+            rm -rvf ${HOME}/.ssh
+        fi
+        mv -vf ${HOME}/${__ssh_package}  ${HOME}/.ssh
+        echo "JLL: Finish restoring the original ssh configuration."
+    else
+        echo "JLL: Nothing to do for restoring the original ssh configuration."
+    fi
+}
 
 #
 # Location the which project associated with PhilipsTV
@@ -384,7 +458,6 @@ function Fn_PhilipsTV_Compilation()
         exit 0
     fi
 
-
     declare -a GvMenuUtilsContent=(
         "Build_pkg:                            make -j8 mtk_build"
         "Clean:                                make -j8 mtk_clean"
@@ -475,17 +548,37 @@ EOF
     unset GvMenuUtilsContentCnt
 }
 
+function Fn_PhilipsTV_GitPushToMaster()
+{
+    __SSHCONF_Switching_Start
+    LvProject=$(repo info . | grep -E '^Project: ' | awk -F'Project: ' '{print $2}')
+    LvCurrentRevision=$(repo info . | grep -E 'Current revision: ' | awk -F'Current revision: ' '{print $2}')
+
+    if [ x"${LvProject}" = x -o x"${LvCurrentRevision}" = x ]; then
+        echo "JLL: Sorry to exit because can't get the valid information by 'repo info .'"
+        exit 0
+    fi
+    git push ssh://url-tpemaster/${LvProject} HEAD:refs/for/${LvCurrentRevision}
+    __SSHCONF_Switching_End 
+}
+
+
+
+
 
 declare -a GvMenuUtilsContent=(
-    "Query Software Version"
-    "Query Mediatek Version"
-    "Compilation: make or make clean"
-    "Reset And Clean Code Changes For Current Git Branch"
-    "All Git Repositores Status"
-    "Sync Latest Code And Checkout Version Into TPM171E_R.0.xxx.yyy.zzz"
+    "Query: software version"
+    "Query: mediatek version"
+    "Compilation: make or make_clean"
+    "Init: obtain source code"
+    "Reset: remove code changes For current git branch"
+    "Query: all git repositore status"
+    "Checkout:  sync to latest code with aligning to TPM171E_R.0.xxx.yyy.zzz"
+    "Push: git push the changes into Master"
 )
 Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
 
+# Query: software version
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
@@ -496,6 +589,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
     exit 0
 fi
 
+# Query: mediatek version
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
@@ -506,7 +600,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
     exit 0
 fi
 
-
+# Compilation: make or make_clean
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
@@ -517,7 +611,27 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
     exit 0
 fi
 
+# Init: obtain source code
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    clear
+    echo
+    __SSHCONF_Switching_Start
+    echo
+    mkdir -pv 2k16_mtk_archer_refdev
+    cd 2k16_mtk_archer_refdev
+    repo init -u ssh://url/tpv/platform/manifest -b 2k16_mtk_archer_refdev
+    repo sync
+    cd -
+    echo
+    __SSHCONF_Switching_End
+    echo
+    exit 0
+fi
+
+# Reset: remove code changes For current git branch
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
     clear
     # Find the same level path which contains .git folder
     Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
@@ -544,7 +658,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
     exit 0
 fi
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+# Query: all git repositore status
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -558,8 +673,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
 fi
 
 
-## "Sync Latest Code And Checkout Version Into TPM171E_R.0.xxx.yyy.zzz"
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+# Checkout:  sync to latest code with aligning to TPM171E_R.0.xxx.yyy.zzz
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
 
@@ -622,6 +737,14 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
     exit 0
 fi
 
+# Push: git push the changes into Master
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    Fn_PhilipsTV_GitPushToMaster
+    echo
+    exit 0
+fi
 
 unset GvMenuUtilsContent
 unset GvMenuUtilsContentCnt
