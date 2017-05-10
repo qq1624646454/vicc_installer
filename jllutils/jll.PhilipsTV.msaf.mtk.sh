@@ -191,7 +191,7 @@ Port 29418
 IdentityFile ~/.ssh/id_rsa
 
 EOF
-    chmod 0720 ${HOME}/.ssh/config
+    chmod 0600 ${HOME}/.ssh/config
     echo
 }
 
@@ -270,26 +270,6 @@ function __SSHCONF_Switching_End()
 }
 
 
-
-#
-# Location the which project associated with PhilipsTV
-#
-GvRootPath=${HOME}
-if [ ! -e "${GvRootPath}" ]; then
-    Lfn_Sys_DbgEcho "Sorry, Exit due to dont exist user \"~\" path"
-    exit 0
-fi
-
-# Find the same level path which contains .repo folder
-Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
-if [ ! -e "${GvPrjRootPath}" ]; then
-    Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
-    Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
-    exit 0
-fi
-echo
-
-GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
 
 
 ## Fn_Sort_ThreeFields_SplitByDot  "<PrefixString>"  "<Descend>|<Ascend>"
@@ -772,6 +752,26 @@ function Fn_PhilipsTV_GitPushToMaster()
 
 
 
+
+#
+# Location the which project associated with PhilipsTV
+#
+GvRootPath=${HOME}
+if [ ! -e "${GvRootPath}" ]; then
+    Lfn_Sys_DbgEcho "Sorry, Exit due to dont exist user \"~\" path"
+    exit 0
+fi
+
+# Find the same level path which contains .repo folder
+#Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+#if [ ! -e "${GvPrjRootPath}" ]; then
+#    Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+#    Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+#    exit 0
+#fi
+#echo
+#GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
+
 declare -a GvMenuUtilsContent=(
     "Query: software version"
     "Query: mediatek version"
@@ -788,6 +788,14 @@ Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     clear
     echo
     Fn_PhilipsTV_VersionInfo
@@ -799,6 +807,14 @@ fi
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     clear
     echo
     Fn_Mediatek_VersionInfo
@@ -810,6 +826,14 @@ fi
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     clear
     echo
     Fn_PhilipsTV_Compilation
@@ -823,7 +847,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
     unset GvMenuUtilsContentCnt
     clear
     echo
-    __SSHCONF_Switching_Start
+    #__SSHCONF_Switching_Start
+    __SSHCONF_Switching_Start__jielong
     echo
     mkdir -pv 2k16_mtk_archer_refdev
     cd 2k16_mtk_archer_refdev
@@ -838,6 +863,17 @@ fi
 
 # Reset: remove code changes For current git branch
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    clear
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     clear
     # Find the same level path which contains .git folder
     Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
@@ -868,6 +904,14 @@ fi
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     clear
     echo
     echo
@@ -883,7 +927,14 @@ fi
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
-
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
     echo
     read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
     if [ x"${GvChoice}" = x"y" ]; then
@@ -996,6 +1047,15 @@ fi
 if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
+    Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
+    if [ ! -e "${GvPrjRootPath}" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvPrjRootPath}\"" 
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Root Path" 
+        exit 0
+    fi
+    echo
+    GvRepoPath="${GvRootPath##${GvPrjRootPath}}"
+    echo
     Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
     if [ ! -e "${GvBranchGitPath}" ]; then
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvBranchGitPath}\"" 

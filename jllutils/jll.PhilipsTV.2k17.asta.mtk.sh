@@ -218,7 +218,7 @@ IdentityFile ~/.ssh/id_rsa
 
 
 EOF
-    chmod 0720 ${HOME}/.ssh/config
+    chmod 0600 ${HOME}/.ssh/config
     echo
 }
 
