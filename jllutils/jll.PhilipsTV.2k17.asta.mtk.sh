@@ -5,10 +5,303 @@ JLLPATH="$(which $0)"
 JLLPATH="$(dirname ${JLLPATH})"
 source ${JLLPATH}/BashShellLibrary
 
+
+#git push ssh://${GvCONF_HOST}/${LvProject} HEAD:refs/for/${LvCurrentRevision}
+GvCONF_HOST=gerrit-master
+
+#User@${GvCONF_EmailSuffix}
+GvCONF_EmailSuffix=tpv-tech.com
+
+GvCONF_TAG_Pattern=QM16XE_U_R
+
+
+#The below variables are set by __SSHCONF_GetCommiter
+GvCONF_Committer_Author=
+GvCONF_Committer_Email=
+
+function __SSHCONF_GetCommiter()
+{
+    #Example For:
+    #------------------------------
+    #Host url
+    #HostName 172.20.30.2
+    #User jielong.lin 
+    #Port 29420
+    #IdentityFile ~/.ssh/id_rsa
+    if [ ! -e "${HOME}/.ssh/config" ]; then
+        GvCONF_Committer_Author=$(git config --global user.name)
+        GvCONF_Committer_Email=$(git config --global user.email)
+        if [ x"${GvCONF_Committer_Author}" != x -a x"${GvCONF_Committer_Email}" != x ]; then
+            echo
+            echo "JLL: using origin 'git config --global user.name and user.email':"
+            echo "-----------------------------------------------------------"
+            echo "JLL: committer author = ${GvCONF_Committer_Author}" 
+            echo "JLL: committer email = ${GvCONF_Committer_Email}"
+            echo 
+        else
+            echo
+            echo "JLL: failed to use origin 'git config --global user.name and user.email'"
+            echo "JLL: please set git config for committer by manual"
+            echo
+        fi
+    else
+        declare -a __HOST_Table
+        OldIFS=${IFS}
+        IFS=$'\n'
+        GvI=0
+        for GvLine  in $(grep -n -E "^Host " ${HOME}/.ssh/config); do
+            __HOST_Table[GvI++]=${GvLine} 
+        done 
+        IFS=${OldIFS}
+        if [ ${GvI} -lt 1 ]; then
+            echo
+            echo "JLL: Sorry to exit due to none HOST in ${HOME}/.ssh/config"
+            echo
+            unset __HOST_Table
+            exit 0
+        fi
+        declare -a GvHitHostTable
+        declare -a GvHitUserTable
+        IFS=$'\n'
+        GvK=0
+        for GvLine in $(grep --color -n -E "^User " ${HOME}/.ssh/config); do
+            echo "JLL: Probing ${GvLine}"
+            GvIdx=${GvLine%%:*}
+            # Search the line number of the Host 
+            for((GvJ=0; GvJ<GvI; GvJ++)) {
+                GvIsMatch=0
+                if [ ${GvIdx} -lt ${__HOST_Table[GvJ]%%:*} ]; then
+                    GvIsMatch=1
+                else 
+                    # GvIdx belong to the tail item
+                    if [ $((GvJ+1)) -eq ${GvI} ]; then
+                       echo "JLL: reach to Tail Item"
+                       GvIsMatch=1
+                       GvJ=$((GvJ+1))
+                    fi
+                fi
+
+                if [ ${GvIsMatch} -eq 1 ]; then
+                    GvIsHit=0
+                    for((GvN=0;GvN<GvK;GvN++)) {
+                        # check if same
+                        if [ x"${GvHitHostTable[GvN]}" = x"${__HOST_Table[GvJ-1]##*Host }" ]; then
+                           GvIsHit=1;
+                           break;
+                        fi
+                    }
+                    if [ ${GvIsHit} -eq 0 ]; then
+                        echo "JLL: Hit=${__HOST_Table[GvJ-1]##*Host }"
+                        GvHitHostTable[GvK]=${__HOST_Table[GvJ-1]##*Host }
+                        GvHitUserTable[GvK++]=${GvLine##*User }
+                    fi
+                    break;
+                fi
+            }
+        done
+        IFS=${OldIFS}
+        unset __HOST_Table
+        echo
+        echo "======================================="
+        echo "JLL: Hit-Total is $GvK"
+        echo "======================================="
+        echo
+
+        for((i=0;i<${GvK};i++)) {
+            echo "JLL: Check if \"$(echo ${GvHitHostTable[i]})\"==\"${GvCONF_HOST}\" "
+            if [ x"$(echo ${GvHitHostTable[i]})" = x"${GvCONF_HOST}" ]; then
+                GvCONF_Committer_Author=$(echo ${GvHitUserTable[i]})
+                GvCONF_Committer_Email=${GvCONF_Committer_Author}@${GvCONF_EmailSuffix}
+                break;
+            fi
+        }
+        unset GvHitHostTable
+        unset GvHitUserTable
+
+        if [ x"${GvCONF_Committer_Author}" != x -a x"${GvCONF_Committer_Email}" != x ]; then
+            echo
+            echo "JLL: using ${HOME}/.ssh/config for setting committer:"
+            echo "-----------------------------------------------------------"
+            echo "JLL: committer author = ${GvCONF_Committer_Author}" 
+            echo "JLL: committer email = ${GvCONF_Committer_Email}"
+            echo 
+        else
+            echo
+            echo "JLL: failed to use ${HOME}/.ssh/config for setting committer"
+            echo "JLL: please set git config for committer by manual"
+            echo
+        fi
+    fi
+}
+
+
+__ssh_package=.__ssh_R$(date +%Y_%m_%d__%H_%M_%S)
+function __SSHCONF_Switching_Start__jielong()
+{
+    echo
+    if [ -e "${HOME}/.ssh" ]; then
+        echo "JLL: ~/.ssh will be moved to ${__ssh_package}"
+        mv -fv ${HOME}/.ssh  ${HOME}/${__ssh_package}
+        echo
+    fi
+    mkdir -pv ${HOME}/.ssh
+    chmod 0777 ${HOME}/.ssh
+    echo "JLL: Generate ~/.ssh/id_rsa belong to jielong.lin@tpv-tech.com"
+cat >${HOME}/.ssh/id_rsa <<EOF
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA30E5aVhLJYIp3exNWMIjKFTKd25oOxdw25oBJE4bDxS5yCsE
+IJOhNrlPGKzyo22q3tIpiuZg4Ld6l9n2BxNbSND2sezhr4TnikVPPgCZdcGmUGho
+OGkVM2CqTiEL2kL9qDS9vEOxg818nHhbiVuF7MVO0eij/Yk17/b+iDgSsmHJ5zcw
+DMdA4+jauXERyAzdfEzHbmmKbR6L2TIkMPqYFieFHpS7zGxssR0tPxqTKd7I9reI
+2b8rK2yTwCRnaWKTuKP+uOfLYrg0fdx/N88/X8sC6Vfw/qnaoPXoahW1cWDXH1G9
+K7Gn+mZxKqGSOZlybcPL+ZNknKZytkRZqc3WRQIDAQABAoIBAGZq9JyIPckSQoSl
+cAJE5X4OD+fkRXq+US7dIqL2FeHAP049taIAN9f0AP4v8QvaNqYLwbUP5OeSJHJf
+MkeisKDiBBoxsoMjtFixXR3zhnMICHUgwJcIVgqA0QAQlvBlBRrSPyyL3Xa6oOzj
+JhMIYpLxHSyczgZ0mMLiC3iQSLt913rdehD1y6aseinLyUuwembvxMZw2FIrSqy9
+pKi50Pp2dWQ3rq4M11K7GTe9wfqvIIWVVvnYlawV5SNLUXlK5G8LFS4N/tUN+nqk
+MCS7ooeeBKn9/UDjg7l5gDX/VqsCLBvCEO9mg8VT+jkUpE3nbEgO6gBsZ70mBnY9
+H1D/iu0CgYEA9y3Ve2bsdmUiDRiNdEOR2WiGtAQOdPeEW6cX/9ldwo+Dff9ZRjXO
+eTRjcDHUKmaHGmrrqyZnARAWrWZ9aVIGrPFHFyRAf/oApfJQYDHRtQ285rzKD3FQ
+4HIV3TtYfO7gf756xtyYXLSQvNaXEjTbYw+mlZTpBnXWKFnl7LwpwncCgYEA5zjT
+BbbgiIjxN56S0Ri8MCWRgeTwdmSIgz/m6+k0YEGu+H8GKmDvSmb7w2nxVuL1FhKQ
+BvQe8Kaxnsfu5xiKGNjJ2cSzlR86Bp3h+oVQun7fcAUf704B35DPu1nuM4IyN1zn
+gllsbGN10Eg7ZdSiucWcYbsqLMCGvgH6dux5wCMCgYEA9w7v350bYqdpJo/Q61GS
+WSzZ3tpjHNQ9jmJwYYEA7zQE6Q4uTDgBvTH45i5X811xUp1mGzaSJATRtdXIKlob
+ZAbx2JaahY/7z+JoJg4FnqMxmas/h7nqbbx6UBs+MfmNmQFptJTPEXJFbQpMC52b
+XuNIzR/+3j8vpDtezoWwc7cCgYBvszfeTtZxnxZItEZg1P40lDGS+rJfv3ljTn+T
+//jZd2G7kkG8P0/aNZ3ybT+1pbaYjycc9Nntj9nGxvdWlLhCAJiipy/KHme9wo/k
+onq5XYk7aH5g8OJeympQK8WzBHaV4D/G7MRAKFxF3l8zdmGWNSyy2eQp8mglandA
+9ERs2QKBgQCoYfcDBFi+bnr0USxBO2ysXOhkkzLzigos7WEeW+R56zmgqGiiw/o7
+vot6BuT0GQnWnhFGh/uEM5+b0Y4vfDKxDXXb4j5Cn6wSMC+Xyn/5XKTJAMleZZg9
+M1KJDNJyY9xEVITOo4KFxVTdmPWeuW8x+KRgpOT3Ws1OzBoSZXBo0g==
+-----END RSA PRIVATE KEY-----
+EOF
+    chmod 0400 ${HOME}/.ssh/id_rsa
+cat >${HOME}/.ssh/config<<EOF
+
+Host         gerrit-XM
+Hostname     172.20.30.2
+Port         29419
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
+Host         gerrit
+Hostname     inblrgit001.tpvision.com
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa 
+
+Host         gerrit-master
+Hostname     inblrgit001.tpvision.com
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
+Host url
+HostName 172.20.30.2
+User jielong.lin 
+Port 29420
+IdentityFile ~/.ssh/id_rsa
+
+Host url-tpemaster
+HostName 172.16.112.71
+User jielong.lin 
+Port 29418
+IdentityFile ~/.ssh/id_rsa
+
+Host         url_LatAm
+Hostname     172.16.112.71
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
+
+
+EOF
+    chmod 0720 ${HOME}/.ssh/config
+    echo
+}
+
+function __SSHCONF_Switching_Start__xianmei()
+{
+    echo
+    if [ -e "${HOME}/.ssh" ]; then
+        echo "JLL: ~/.ssh will be moved to ${__ssh_package}"
+        mv -fv ${HOME}/.ssh  ${HOME}/${__ssh_package}
+        echo
+    fi
+    mkdir -pv ${HOME}/.ssh
+    chmod 0777 ${HOME}/.ssh
+    echo "JLL: Generate ~/.ssh/id_rsa belong to xianmei.liao@tpv-tech.com"
+cat >${HOME}/.ssh/id_rsa <<EOF
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAsnEL6lFcTgekhY/2GQ6zZ0wAcViolX1uvDlAX3cNvEvgE9mA
+EUVLNS41nQWvZpo84NLzorTSGlddIT3MIY75yEP3QxEmQG/uCviB4LOXxgpbuDcf
+gQHnkWIDqysYccilyUKbQrf9C4ifaGh8Vk520A6L7tN+ObhhoqlJftQteKl361TJ
+NeLSZ8KByGIQMpj2ZjePEGrBjUaLPjZElXgsISTb80db53MvDcQXjbXEuquYfM6r
++IsX+nIBssXmY2Lo5iY+NBHgDgmp+oSp6AHBlR0XYD16bYB6k2ZvbyFSJ3smE8rG
+eBNeyk4GjfGDl36iW4gC1Jc6XU01aejCfMyGNwIDAQABAoIBABY+Axc1BwVu7HH9
+jNZ4v6ILli6Kt5DSrr/lfwGnTF4BMzAmN1Fvyr0ZQnONJtzqMtZvVREd6uZ/p0si
+cdRpBveQiTyh4Zu8l/ZkHYRNvohf+CjRLisdeqjjh8OJPqXINeoNVF8PogoTAJO6
+Gm2DoEm01npxgFVfh0QIR/H4LqbQe5pX/hVEkYvbMRN6MX6BLU8RpigMAP5HBw8V
+zTgm1uW4yhjIclvQuCxRTn/IwFCpuv6bRTJp1jFYwWA0+6zvrCYK3pDSZuccGI5P
+5nsa3lH0J9y7PX9K3ozxLhdY7Kbrs+dP7T1Cfzhkn4JhZ0ja0nPzAn72kQ/LI19q
+woQjcFECgYEA4HqkfVCxNo3u2lNyG0pXmt0eGSZhqAerDBRS3XN+uwGvyOXkkMNd
+dZmgp4NajwrR9Yejys248ZIYRbOrRI6N9u2DiRFDxaf4tGnUf8Mwia14mxQt29+8
+DFGz8dTN2KIKqjMl97nzlts6/uLlPY72GinEDG1Gzn+i80pMKLYrH48CgYEAy39+
+LHSDaCFBFqeCJjYb8iNgr023doYzwej12fTgjthUdQ8/yNhWqDdz+2XK7TBtsBvs
+nf0Q/rpdGKH81VqCPdl0Js76HDtKOWYt9jdz0V9eu6J860in0vOUf8er8RyiURnH
+OxJ+iDIkfP9ZkEPSSr9uFR2a8Tqje+y29UEx2tkCgYEAnHtB8Q1wC3yTdWRYFcgU
+G6NqWNPVnaGCzg/Y2ACr5ka9uEjxtSxLGTB3um4pka9UP1lHh5czBkr2WphtmoPZ
+WLmnSMRdPwrhpzpi5JE3Y7Imccx2T2C+oMPPsZPLzujekFjJbdAViyLWFFosvWXM
+Dt7wiE0g39A/0mMHhhW/J+cCgYEAhBpPnixE4eQ0jLBRHN0jZxzwNt0MrDSShN7m
+Oods/04QBa3QimFmX+0fraN3CGLX0etOv4D492Oj68m8iAQpaF0xub/DPXB/zqM2
+Uw/Mb66poMTqsxKHX7ogPJMyW2NrO5qwavimi2OBrGNXkP92FHAQ1kRRwSd/2YLh
+gnTAGIECgYAamsuvGd2CKVaHrt1GrrweNYciPDB4UNGx5baizfywHxfOcQNT6/u/
+5KcK+gvtCp+tENrKtikD9e4V+n/e4GyArafv5KlHddHxjPZWFv6njAO13f6ZB0Q5
+RG72swzCsdlr/uPfv/0eUDEXLPWEv5OeZ3vhvlDPYlxZ+97SHii9iA==
+-----END RSA PRIVATE KEY-----
+EOF
+    chmod 0500 ${HOME}/.ssh/id_rsa
+cat >${HOME}/.ssh/config<<EOF
+
+Host url
+HostName 172.20.30.2
+User xianmei.liao
+Port 29420
+IdentityFile ~/.ssh/id_rsa
+
+Host url-tpemaster
+HostName 172.16.112.71
+User xianmei.liao
+Port 29418
+IdentityFile ~/.ssh/id_rsa
+
+EOF
+    chmod 0700 ${HOME}/.ssh/config
+    echo
+}
+
+
+function __SSHCONF_Switching_End()
+{
+    if [ -e "${HOME}/${__ssh_package}" ]; then
+        if [ -e "${HOME}/.ssh" ]; then
+            rm -rvf ${HOME}/.ssh
+        fi
+        mv -vf ${HOME}/${__ssh_package}  ${HOME}/.ssh
+        echo "JLL: Finish restoring the original ssh configuration."
+    else
+        echo "JLL: Nothing to do for restoring the original ssh configuration."
+    fi
+}
+
+
+
 #
 # Location the which project associated with PhilipsTV
 #
-GvRootPath=$(realpath ~)
+GvRootPath=${HOME}
 if [ ! -e "${GvRootPath}" ]; then
     Lfn_Sys_DbgEcho "Sorry, Exit due to dont exist user \"~\" path"
     exit 0
@@ -71,6 +364,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
             __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
             __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
             __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+            [ x"${__LvF1}" = x ] && __LvF1=0
+            [ x"${__LvF2}" = x ] && __LvF2=0
+            [ x"${__LvF3}" = x ] && __LvF3=0
             __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
             for ((j=i+1; j<__Li4Count; j++)) {
                 __LvEntrySmall=${GvPageMenuUtilsContent[j]}
@@ -81,6 +377,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                 __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                 __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                 __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                [ x"${__LvF1}" = x ] && __LvF1=0
+                [ x"${__LvF2}" = x ] && __LvF2=0
+                [ x"${__LvF3}" = x ] && __LvF3=0
                 __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 if [ ${__Li4Small} -gt ${__Li4Big} ]; then
                     __LvTemp=${GvPageMenuUtilsContent[i]}
@@ -94,6 +393,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                     __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                     __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                     __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                    [ x"${__LvF1}" = x ] && __LvF1=0
+                    [ x"${__LvF2}" = x ] && __LvF2=0
+                    [ x"${__LvF3}" = x ] && __LvF3=0
                     __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 fi
             }
@@ -113,6 +415,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
             __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
             __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
             __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+            [ x"${__LvF1}" = x ] && __LvF1=0
+            [ x"${__LvF2}" = x ] && __LvF2=0
+            [ x"${__LvF3}" = x ] && __LvF3=0
             __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
             for ((j=i+1; j<__Li4Count; j++)) {
                 __LvEntryBig=${GvPageMenuUtilsContent[j]}
@@ -123,6 +428,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                 __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                 __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                 __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                [ x"${__LvF1}" = x ] && __LvF1=0
+                [ x"${__LvF2}" = x ] && __LvF2=0
+                [ x"${__LvF3}" = x ] && __LvF3=0
                 __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 if [ ${__Li4Small} -gt ${__Li4Big} ]; then
                     __LvTemp=${GvPageMenuUtilsContent[i]}
@@ -136,6 +444,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                     __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                     __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                     __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                    [ x"${__LvF1}" = x ] && __LvF1=0
+                    [ x"${__LvF2}" = x ] && __LvF2=0
+                    [ x"${__LvF3}" = x ] && __LvF3=0
                     __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 fi
             }
@@ -144,11 +455,13 @@ function Fn_Sort_ThreeFields_SplitByDot()
 }
 
 
+
+
 function Fn_Mediatek_VersionInfo()
 {
 cat >&1 << EOF
 
- $ vim device/mediatek_common/vm_linux/project_x/sys_build/tpvision/QM16XE_F/Makefile
+ $ vim vm_linux/project_x/sys_build/tpvision/QM16XE_F/Makefile
  ...
  425 # path customization for project_x/target/$(OS_TARGET)
  426 export OS_TARGET      := linux-2.6.18
@@ -175,8 +488,11 @@ EOF
     #LvmvVariable="${GvPrjRootPath}/device/mediatek_common/vm_linux/project_x/sys_build/tpvision"
     LvmvVariable="${GvRepoPath}/vm_linux/project_x/sys_build/tpvision"
     if [ ! -e "${LvmvVariable}" ]; then
-        #LvmvVariable="${GvPrjRootPath}/device/mediatek_common/vm_linux/project_x/sys_build/tpv"
-        LvmvVariable="${GvRepoPath}/vm_linux/project_x/sys_build/tpv"
+        Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${LvmvVariable} '"
+        unset LvmvVariable
+        unset GvMenuUtilsContent
+        unset GvMenuUtilsContentCnt
+        return
     fi
     if [ -e "${LvmvVariable}" ]; then
         LvmvSubVariable="$(cd ${LvmvVariable};ls)"
@@ -240,7 +556,11 @@ function Fn_PhilipsTV_VersionInfo()
     #
     LvpvVariable="${GvPrjRootPath}/device/tpvision"
     if [ ! -e "${LvpvVariable}" ]; then
-        LvpvVariable="${GvPrjRootPath}/device/tpv"
+        Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${LvpvVariable} '"
+        unset LvpvVariable
+        unset GvMenuUtilsContent
+        unset GvMenuUtilsContentCnt
+        return
     fi
     if [ -e "${LvpvVariable}" ]; then
         LvpvSubVariable="$(cd ${LvpvVariable};ls)"
@@ -386,13 +706,16 @@ function Fn_PhilipsTV_Compilation()
         "Build__QM16XE_U_PKG:  ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U"
         "Clean__QM16XE_U_PKG:  make -j8 mtk_clean"
         #"Build_pkg__fullupg:  make -j8 mtk_build and upgmaker"
-        #"Usage:               compilation usage manual"
+        "Usage:               compilation usage manual"
     )
     GvMenuUtilsContentCnt=${#GvMenuUtilsContent[@]}
 
     while [ 1 -eq 1 ]; do
         Lfn_MenuUtils GvResult  "Select" 7 4 "***** Execute Action MENU (q: quit no matter what) *****"
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+        GvResultID=0
+
+        # "Build__QM16XE_U_PKG:  ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             if [ ! -e "${GvPrjRootPath}/device/tpvision/common/sde/upg/build_philipstv.sh" ]; then
                 echo
                 echo "JLL-Error: Not present the below script to compile code "
@@ -407,7 +730,7 @@ function Fn_PhilipsTV_Compilation()
             ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U 
             cd - >/dev/null
             echo
-        if [ 1 -ne 1 ]; then
+          if [ 1 -ne 1 ]; then
             clear
             echo
             cd ${GvPrjRootPath}
@@ -416,9 +739,11 @@ function Fn_PhilipsTV_Compilation()
             echo
             make -j8 mtk_build 2>&1|tee make.mtk_build.log
             echo
+          fi
         fi
-        fi
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
+
+        # "Clean__QM16XE_U_PKG:  make -j8 mtk_clean"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
             echo
             cd ${GvPrjRootPath}
@@ -445,8 +770,10 @@ function Fn_PhilipsTV_Compilation()
             fi
             echo
         fi
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
-        if [ 1 -ne 1 ]; then
+
+    if [ 1 -ne 1 ]; then
+        # #"Build_pkg__fullupg:  make -j8 mtk_build and upgmaker"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
             echo
             cd ${GvPrjRootPath}
@@ -458,9 +785,10 @@ function Fn_PhilipsTV_Compilation()
             Fn_PhilipsTV_Make_Full_UPG
             echo
         fi
-        fi
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
-        if [ 1 -ne 1 ]; then
+    fi
+
+        # #"Usage:               compilation usage manual"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
 cat >&1 <<EOF
 
@@ -470,7 +798,10 @@ cat >&1 <<EOF
   
       make -j8 mtk_clean 2>&1 | tee make.mtk_clean.log
 
-      make -j8 mtk_build 2>&1 | tee make.mtk_build.log
+      # make -j8 mtk_build 2>&1 | tee make.mtk_build.log
+      set_n
+      ./device/tpvision/common/sde/upg/build_philipstv.sh -p QM16XE_U
+
 
       #compile upg
       cd device/tpvision/common/sde/upg/
@@ -478,7 +809,7 @@ cat >&1 <<EOF
 
 EOF
         fi
-        fi
+
         read -t 5 -p "JLL: Back to Execute Action Menu if press [y]?  " LvChoice
         if [ x"${LvChoice}" = x"y" ]; then
             continue
@@ -493,33 +824,50 @@ EOF
 
 function Fn_PhilipsTV_GitPushToMaster()
 {
+    #__SSHCONF_Switching_Start
+    __SSHCONF_Switching_Start__jielong
     LvProject=$(repo info . | grep -E '^Project: ' | awk -F'Project: ' '{print $2}')
     LvCurrentRevision=$(repo info . | grep -E 'Current revision: ' | awk -F'Current revision: ' '{print $2}')
 
     if [ x"${LvProject}" = x -o x"${LvCurrentRevision}" = x ]; then
         echo "JLL: Sorry to exit because can't get the valid information by 'repo info .'"
+        __SSHCONF_Switching_End
         exit 0
     fi
-    git push ssh://gerrit-master/${LvProject} HEAD:refs/for/${LvCurrentRevision} 
+
+    __SSHCONF_GetCommiter
+
+    git config --global user.name  ${GvCONF_Committer_Author} 
+    git config --global user.email ${GvCONF_Committer_Email} 
+    echo
+    echo "JLL: cat ~/.ssh/config"
+    cat ~/.ssh/config
+    echo
+    echo "JLL: cat ~/.ssh/id_rsa"
+    cat ~/.ssh/id_rsa 
+    echo
+    echo "JLL:  git push ssh://${GvCONF_HOST}/${LvProject} HEAD:refs/for/${LvCurrentRevision}"
+    git push ssh://${GvCONF_HOST}/${LvProject} HEAD:refs/for/${LvCurrentRevision}
+    __SSHCONF_Switching_End
 }
 
 
 
 declare -a GvMenuUtilsContent=(
-    "Query Software Version"
-    "Query Mediatek Version"
-    "Compilation: make or make clean"
+    "Query: software version"
+    "Query: mediatek version"
+    "Compilation: make or make_clean"
     "Make Full upg Image : upg is only maked after Compilation"
     "Make Tool upg Image : upg is only maked after Compilation"
     "Git Push For LocalRepository To RemoteRepository"
     "All Git Repositores Status"
-    "Sync Latest Code And Checkout Version Into QM16XE_UB_R0.xxx.yyy.zzz"
-    "Sync Latest Code And Checkout Version Into QM16XE_F_R0.xxx.yyy.zzz"
-    "Sync Latest Code And Checkout Version Into QM16XE_U_R0.xxx.yyy.zzz"
+    "Sync Latest Code And Checkout Version Into ${GvCONF_TAG_Pattern}aaa.bbb.ccc.ddd"
 )
 Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
+GvResultID=0
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+# Query: software version
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -529,7 +877,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
     exit 0
 fi
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
+# Query: mediatek version
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -539,8 +888,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
     exit 0
 fi
 
-
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
+# Compilation: make or make_clean
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -550,7 +899,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
     exit 0
 fi
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+# "Make Full upg Image : upg is only maked after Compilation"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -560,7 +910,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
     exit 0
 fi
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+# "Make Tool upg Image : upg is only maked after Compilation"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -571,8 +922,8 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
 fi
 
 
-
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+# "Git Push For LocalRepository To RemoteRepository"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -582,47 +933,161 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
     exit 0
 fi
 
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
+# "All Git Repositores Status"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
     echo
     echo
     echo
-    repo forall -c 'if [ x"$(git status -s)" != x ]; then echo;pwd;git status -s; fi' | tee All_Git_Repositories_Status.jll
+    repo forall -c 'if [ x"$(git status -s)" != x ]; then echo;pwd;git status -s; fi' \
+        | tee All_Git_Repositories_Status.jll
     echo
     echo
     exit 0
 fi
 
-## "Sync Latest Code And Checkout Version Into QM16XE_UB_R0.xxx.yyy.zzz"
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
+
+
+## Stdin_GetInput <oResult> [<prompt>]
+##
+## Stdin_GetInput  oResult  "hello world: "
+## echo "Result: $oResult"
+function Stdin_GetInput()
+{
+    if [ ! -z "$2" ]; then
+        LvSgdCmd='read -p "$2" LvSgdNum'
+    else
+        LvSgdCmd='read LvSgdNum'
+    fi
+
+    LvSgdNum=""
+    while [ -z "${LvSgdNum}" ]; do
+        eval ${LvSgdCmd}   
+        [ x"${LvSgdNum}" = x"*" ] && break;
+        [ x"${LvSgdNum}" = x"." ] && break;
+        [ x"${LvSgdNum}" = x"q" ] && break;
+        echo ${LvSgdNum} | grep -E '[^0-9]' >/dev/null && LvSgdNum="" || break;
+    done
+
+    eval $1="${LvSgdNum}"
+}
+
+
+
+## "Sync Latest Code And Checkout Version Into ${GvCONF_TAG_Pattern}aaa.bbb.ccc.ddd"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
 
     echo
     read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
     if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvRepoPath}
-        repo sync
+        unset GvChoice
+        declare -i GvPageUnit=10
+        declare -i GvMenuID=0
+        declare -a GvPageMenuUtilsContent
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync with reset"
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync without reset"
+        GvPageMenuUtilsContent[GvMenuID++]="manually sync"
+        Lfn_PageMenuUtils GvAutoChoice  "Select" 7 4 "***** SYNC MODE  (q: quit) *****"
+        GvChoice=1
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[0]}" ]; then
+            GvChoice=0
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[1]}" ]; then
+            GvChoice=1
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[2]}" ]; then
+            GvChoice=2
+        fi
+        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+        [ x"${GvMenuID}" != x ] && unset GvMenuID
+        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+ 
+        echo
+        cd ${GvPrjRootPath}
+        pwd
+        echo
+        if [ x"${GvChoice}" = x"2" ]; then # manually sync 
+            repo forall -c 'pwd;if [ x"$(git status -s)" != x ]; then \
+                            read -p "Jll: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                            fi; \
+                            if [ x"${__GvChoive}" = x"y" ]; then \
+                                git clean -dfx; git reset --hard HEAD; \
+                            fi; '
+            repo sync
+        else
+            if [ x"${GvChoice}" = x"1" ]; then # automatically sync without reset
+                repo sync
+            else
+                if [ x"${GvChoice}" = x"0" ]; then # automatically sync with reset
+                    repo forall -c "pwd; git clean -dfx; git reset --hard HEAD"
+                    repo sync
+                else
+                    echo "JLL: Error because unknown sync mode {manually or automatically}"
+                fi
+            fi
+        fi
+        echo
         cd -  >/dev/null
     fi
     echo
 
-    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
+    if [ ! -e "${GvPrjRootPath}/frameworks/av/.git" ]; then
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
+            "JLL-Check @ Not Present \"${GvPrjRootPath}/frameworks/av/.git\"" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
         echo
         exit 0
     fi
     clear
-    cd ${GvPrjRootPath}/libcore
+    a=
+    b=
+    c=
+    d=
+    isLooping=1
+    TagPTN=${GvCONF_TAG_Pattern}
+    while [ ${isLooping} -eq 1 ]; do 
+        if [ x"$a" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${CvAccOff}${CvBgYellow}${CvFgBlack}aaa${CvAccOff}.bbb.ccc.ddd ;  default by 0, * (Exit by press [q])"
+            Stdin_GetInput a "aaa="
+            [ x"$a" = x"q" ] && exit 0
+        fi
+        if [ x"$b" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${CvAccOff}${CvBgYellow}${CvFgBlack}bbb${CvAccOff}.ccc.ddd ; default by 15, * (Exit by press [q])"
+            Stdin_GetInput b "bbb="
+            [ x"$b" = x"q" ] && exit 0
+        fi
+        if [ x"$c" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${b}.${CvAccOff}${CvBgYellow}${CvFgBlack}ccc${CvAccOff}.ddd ; default by * (Exit by press [q])"
+            Stdin_GetInput c "ccc="
+            [ x"$c" = x"q" ] && exit 0
+        fi
+        if [ x"$d" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${b}.${c}.${CvAccOff}${CvBgYellow}${CvFgBlack}ddd${CvAccOff} ; default by * (Exit by press [q])"
+            Stdin_GetInput d "ddd="
+            if [ x"$d" != x ]; then
+                isLooping=0
+            else
+                [ x"$d" = x"q" ] && exit 0
+            fi
+        fi
+    done
+
+    clear
+    cd ${GvPrjRootPath}/frameworks/av
     declare -i GvPageUnit=10
     declare -i GvMenuID=0
     declare -a GvPageMenuUtilsContent
-    _GvVersionList=$(git tag -l QM16XE_UB_R0.15.*)
+    TagPattern=${TagPTN}${a}.${b}.${c}.${d}
+    _GvVersionList=$(git tag -l ${TagPattern})
     cd - >/dev/null
     if [ x"${_GvVersionList}" = x ]; then
         [ x"${GvPageUnit}" != x ] && unset GvPageUnit
@@ -630,7 +1095,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
         [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not find any version like QM16XE_UB_R0.* format!!!" 
+            "JLL-Check @ Not find any version like ${TagPattern} format!!!"
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
         echo
         exit 0 
@@ -638,160 +1103,76 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
     for _GvVersionEntry in ${_GvVersionList}; do
         GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
     done
-    Fn_Sort_ThreeFields_SplitByDot "QM16XE_UB_R0" "Descend"
+    __TagPattern=${TagPattern%%\**}
+    __TagPattern=${__TagPattern/%./}
+    echo "JLL:  Fn_Sort_ThreeFields_SplitByDot \"${__TagPattern}\" \"Descend\""
+    Fn_Sort_ThreeFields_SplitByDot "${__TagPattern}" "Descend"
     Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
+    [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+    [ x"${GvMenuID}" != x ] && unset GvMenuID
+    [ x"${GvPageUnit}" != x ] && unset GvPageUnit
     if [ x"${GvResult}" = x ]; then
         echo
         exit 0
     fi
-    echo
-    cd ${GvRepoPath}
-    echo
-    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
-                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
-                    fi; \
-                    if [ x"${__GvChoive}" = x"y" ]; then \
-                        git clean -dfx; git reset --hard HEAD; \
-                    fi; \
-                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
-    echo
-    cd - >/dev/null
-    echo
-    exit 0
-fi
-
-
-## "Sync Latest Code And Checkout Version Into QM16XE_F_R0.xxx.yyy.zzz"
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[8]}" ]; then
-    unset GvMenuUtilsContent
-    unset GvMenuUtilsContentCnt
-
-    echo
-    read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
-    if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvRepoPath}
-        repo sync
-        cd -  >/dev/null
-    fi
-    echo
-
-    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
-        echo
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
-        echo
-        exit 0
-    fi
-    clear
-    cd ${GvPrjRootPath}/libcore
     declare -i GvPageUnit=10
     declare -i GvMenuID=0
     declare -a GvPageMenuUtilsContent
-    _GvVersionList=$(git tag -l QM16XE_F_R0.15.*)
-    cd - >/dev/null
-    if [ x"${_GvVersionList}" = x ]; then
-        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
-        [ x"${GvMenuID}" != x ] && unset GvMenuID
-        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
-        echo
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not find any version like QM16XE_F_R0.* format!!!" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
-        echo
-        exit 0 
+    GvPageMenuUtilsContent[GvMenuID++]="automatically checkout with reset"
+    GvPageMenuUtilsContent[GvMenuID++]="automatically checkout without reset"
+    GvPageMenuUtilsContent[GvMenuID++]="manually checkout"
+    Lfn_PageMenuUtils GvAutoChoice  "Select" 7 4 "***** CHECKOUT MODE  (q: quit) *****"
+    GvChoice=1
+    if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[0]}" ]; then
+        GvChoice=0
     fi
-    for _GvVersionEntry in ${_GvVersionList}; do
-        GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
-    done
-    Fn_Sort_ThreeFields_SplitByDot "QM16XE_F_R0" "Descend"
-    Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
-    if [ x"${GvResult}" = x ]; then
-        echo
-        exit 0
+    if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[1]}" ]; then
+        GvChoice=1
+    fi
+    if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[2]}" ]; then
+        GvChoice=2
+    fi
+    [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+    [ x"${GvMenuID}" != x ] && unset GvMenuID
+    [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+ 
+    echo
+    echo "JLL: Start to git checkout ${GvResult} by ${GvAutoChoice}"
+    echo
+    cd ${GvPrjRootPath}
+    pwd
+    echo
+    if [ x"${GvChoice}" = x"2" ]; then # manually checkout 
+        repo forall -c 'pwd;if [ x"$(git status -s)" != x ]; then \
+                        read -p "Jll: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                        fi; \
+                        if [ x"${__GvChoive}" = x"y" ]; then \
+                            git clean -dfx; git reset --hard HEAD; \
+                        fi; ' >&1 | tee All_Git_Checkout_${GvResult}.jll
+        repo forall -c "git checkout ${GvResult}" >&1 | tee -a All_Git_Checkout_${GvResult}.jll
+    else
+        if [ x"${GvChoice}" = x"1" ]; then # automatically checkout without reset
+            repo forall -c "pwd; git checkout ${GvResult}" >&1 \
+                | tee All_Git_Checkout_${GvResult}.jll
+        else
+            if [ x"${GvChoice}" = x"0" ]; then # automatically checkout with reset
+                repo forall -c \
+                    "pwd; git clean -dfx; git reset --hard HEAD; git checkout ${GvResult}" \
+                    >&1 | tee All_Git_Checkout_${GvResult}.jll
+            else
+                echo "JLL: Error because unknown checkout mode {manually or automatically}" \
+                    | tee All_Git_Checkout_${GvResult}.jll
+            fi
+        fi
     fi
     echo
-    cd ${GvRepoPath}
-    echo
-    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
-                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
-                    fi; \
-                    if [ x"${__GvChoive}" = x"y" ]; then \
-                        git clean -dfx; git reset --hard HEAD; \
-                    fi; \
-                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
-    echo
     cd - >/dev/null
+    pwd
+    echo
+    echo "JLL: End to git checkout ${GvResult}"
     echo
     exit 0
 fi
-
-
-## "Sync Latest Code And Checkout Version Into QM16XE_U_R0.xxx.yyy.zzz"
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[9]}" ]; then
-    unset GvMenuUtilsContent
-    unset GvMenuUtilsContentCnt
-
-    echo
-    read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
-    if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvRepoPath}
-        repo sync
-        cd -  >/dev/null
-    fi
-    echo
-
-    if [ ! -e "${GvPrjRootPath}/libcore/.git" ]; then
-        echo
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not Present \"${GvPrjRootPath}/libcore/.git\"" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
-        echo
-        exit 0
-    fi
-    clear
-    cd ${GvPrjRootPath}/libcore
-    declare -i GvPageUnit=10
-    declare -i GvMenuID=0
-    declare -a GvPageMenuUtilsContent
-    _GvVersionList=$(git tag -l QM16XE_U_R0.15.*)
-    cd - >/dev/null
-    if [ x"${_GvVersionList}" = x ]; then
-        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
-        [ x"${GvMenuID}" != x ] && unset GvMenuID
-        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
-        echo
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not find any version like QM16XE_U_R0.* format!!!" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
-        echo
-        exit 0 
-    fi
-    for _GvVersionEntry in ${_GvVersionList}; do
-        GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
-    done
-    Fn_Sort_ThreeFields_SplitByDot "QM16XE_U_R0" "Descend"
-    Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
-    if [ x"${GvResult}" = x ]; then
-        echo
-        exit 0
-    fi
-    echo
-    cd ${GvRepoPath}
-    echo
-    repo forall -c 'if [ x"$(git status -s)" != x ]; then \
-                        read -p "Jll-Ask: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
-                    fi; \
-                    if [ x"${__GvChoive}" = x"y" ]; then \
-                        git clean -dfx; git reset --hard HEAD; \
-                    fi; \
-                    git checkout ${GvResult} ' | tee All_Git_Checkout_${GvResult}.jll
-    echo
-    cd - >/dev/null
-    echo
-    exit 0
-fi
-
 
 
 unset GvMenuUtilsContent

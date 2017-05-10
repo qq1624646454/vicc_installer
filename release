@@ -1,4 +1,17 @@
 
+
+Revision 2017.05.10.00
+----------------------------------------------------------------------------------------------------
+Update the jllutils:
+  jll.PhilipsTV.2k15.asta.mtk.sh
+  jll.PhilipsTV.2k16.asta.mtk.sh
+  jll.PhilipsTV.2k17.asta.mtk.sh
+  jll.PhilipsTV.msaf.mtk.sh
+  jll.query.git_log_with_grep.sh
+
+
+
+
 Revision 2017.04.19.00
 ----------------------------------------------------------------------------------------------------
 Update the jllutils for TPV/PhilipsTV

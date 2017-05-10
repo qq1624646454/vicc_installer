@@ -7,11 +7,12 @@ source ${JLLPATH}/BashShellLibrary
 
 
 #git push ssh://${GvCONF_HOST}/${LvProject} HEAD:refs/for/${LvCurrentRevision}
-GvCONF_HOST=url-tpemaster
+GvCONF_HOST=gerrit-master
 
 #User@${GvCONF_EmailSuffix}
 GvCONF_EmailSuffix=tpv-tech.com
 
+GvCONF_TAG_Pattern=QM152E_R
 
 
 #The below variables are set by __SSHCONF_GetCommiter
@@ -178,6 +179,24 @@ EOF
     chmod 0400 ${HOME}/.ssh/id_rsa
 cat >${HOME}/.ssh/config<<EOF
 
+Host         gerrit-XM
+Hostname     172.20.30.2
+Port         29419
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
+Host         gerrit
+Hostname     inblrgit001.tpvision.com
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa 
+
+Host         gerrit-master
+Hostname     inblrgit001.tpvision.com
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
 Host url
 HostName 172.20.30.2
 User jielong.lin 
@@ -189,6 +208,14 @@ HostName 172.16.112.71
 User jielong.lin 
 Port 29418
 IdentityFile ~/.ssh/id_rsa
+
+Host         url_LatAm
+Hostname     172.16.112.71
+Port         29418
+User         jielong.lin
+IdentityFile ~/.ssh/id_rsa
+
+
 
 EOF
     chmod 0720 ${HOME}/.ssh/config
@@ -334,6 +361,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
             __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
             __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
             __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+            [ x"${__LvF1}" = x ] && __LvF1=0
+            [ x"${__LvF2}" = x ] && __LvF2=0
+            [ x"${__LvF3}" = x ] && __LvF3=0
             __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
             for ((j=i+1; j<__Li4Count; j++)) {
                 __LvEntrySmall=${GvPageMenuUtilsContent[j]}
@@ -344,6 +374,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                 __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                 __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                 __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                [ x"${__LvF1}" = x ] && __LvF1=0
+                [ x"${__LvF2}" = x ] && __LvF2=0
+                [ x"${__LvF3}" = x ] && __LvF3=0
                 __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 if [ ${__Li4Small} -gt ${__Li4Big} ]; then
                     __LvTemp=${GvPageMenuUtilsContent[i]}
@@ -357,6 +390,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                     __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                     __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                     __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                    [ x"${__LvF1}" = x ] && __LvF1=0
+                    [ x"${__LvF2}" = x ] && __LvF2=0
+                    [ x"${__LvF3}" = x ] && __LvF3=0
                     __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 fi
             }
@@ -376,6 +412,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
             __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
             __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
             __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+            [ x"${__LvF1}" = x ] && __LvF1=0
+            [ x"${__LvF2}" = x ] && __LvF2=0
+            [ x"${__LvF3}" = x ] && __LvF3=0
             __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
             for ((j=i+1; j<__Li4Count; j++)) {
                 __LvEntryBig=${GvPageMenuUtilsContent[j]}
@@ -386,6 +425,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                 __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                 __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                 __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                [ x"${__LvF1}" = x ] && __LvF1=0
+                [ x"${__LvF2}" = x ] && __LvF2=0
+                [ x"${__LvF3}" = x ] && __LvF3=0
                 __Li4Big=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 if [ ${__Li4Small} -gt ${__Li4Big} ]; then
                     __LvTemp=${GvPageMenuUtilsContent[i]}
@@ -399,6 +441,9 @@ function Fn_Sort_ThreeFields_SplitByDot()
                     __LvF3=${__LvF3#${__LvF2}.}     # "3." is removed from "3.1", 1
                     __LvF3=${__LvF3%%_*}     # "_xx" is removed from "1_xx", 1
                     __LvF3=${__LvF3%%.*}     # ".xx" is removed from "1.xx", 1
+                    [ x"${__LvF1}" = x ] && __LvF1=0
+                    [ x"${__LvF2}" = x ] && __LvF2=0
+                    [ x"${__LvF3}" = x ] && __LvF3=0
                     __Li4Small=$((__LvF1 * 1000000 + __LvF2 * 1000 + __LvF3 * 1))
                 fi
             }
@@ -413,19 +458,20 @@ function Fn_Mediatek_VersionInfo()
 {
 cat >&1 << EOF
 
- $ vim apollo/sys_build/tpv/PH7M_EU_5596/Makefile
+ $ vim device/mediatek_common/vm_linux/project_x/sys_build/tpvision/QM16XE_F/Makefile
  ...
- 759 # path customization for project_x/target/$(OS_TARGET)
- 760 export OS_TARGET      := linux-2.6.18
- 761
- 762 TARGET         := linux_mak
- 763 BUILD_NAME     := PH7M_EU_5596 apollo-mp-1501-1550-5-001-15-001-206-001
- 764 MODEL_NAME     := PH7M_EU_5596
- 765 CUSTOMER       := tpv
- 766 CUSTOM         := philips/tpv/EU
- 767 CUST_MODEL     := $(MODEL_NAME)
- 768 SERIAL_NUMBER  := IDTV
- 769 THIS_ROOT      := $(shell pwd)
+ 425 # path customization for project_x/target/$(OS_TARGET)
+ 426 export OS_TARGET      := linux-2.6.18
+ 427
+ 428 TARGET         := linux_mak
+ 429 BUILD_NAME     := QM16XE_F DTV_X_IDTV1402_368_001_147_001
+ 430 MODEL_NAME     := QM16XE_F
+ 431 CUSTOMER       := tpvision
+ 432 COMMON         := mtk_common
+ 433 CUSTOM         := mtk/dvb/demo2#?
+ 434 CUST_MODEL     := $(MODEL_NAME)
+ 435 SERIAL_NUMBER  := IDTV
+ 436 THIS_ROOT      := $(shell pwd)
  ...
 
 EOF
@@ -436,7 +482,7 @@ EOF
     #
     # Checking if the project is valid
     #
-    LvmvVariable="${GvPrjRootPath}/apollo/sys_build/tpv"
+    LvmvVariable="${GvPrjRootPath}/device/mediatek_common/vm_linux/project_x/sys_build/tpvision"
     if [ ! -e "${LvmvVariable}" ]; then
         Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${LvmvVariable} '"
         unset LvmvVariable
@@ -504,7 +550,7 @@ function Fn_PhilipsTV_VersionInfo()
     #
     # Checking if the project is valid
     #
-    LvpvVariable="${GvPrjRootPath}/android/m-base/device/tpv"
+    LvpvVariable="${GvPrjRootPath}/device/tpvision"
     if [ ! -e "${LvpvVariable}" ]; then
         Lfn_Sys_DbgEcho "Checking @ Not Exist ' ${LvpvVariable} '"
         unset LvpvVariable
@@ -644,42 +690,46 @@ function Fn_PhilipsTV_Make_Tool_UPG()
 ##
 function Fn_PhilipsTV_Compilation()
 {
-    if [ ! -e "${GvPrjRootPath}/android/m-base/build/envsetup.sh" ]; then
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "File=\"${GvPrjRootPath}/android/m-base/build/envsetup.sh\"" 
+    if [ ! -e "${GvPrjRootPath}/build/envsetup.sh" ]; then
+        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "File=\"${GvPrjRootPath}/build/envsetup.sh\"" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find the above file" 
         exit 0
     fi
 
+
     declare -a GvMenuUtilsContent=(
-        "Build_pkg:                            make -j8 mtk_build"
-        "Clean:                                make -j8 mtk_clean"
-        "ExoPlayerWrapper-ContentExplorer:     compile exoplayerwrapper and contentexplorer"
-        "Usage:                                compilation usage manual"
+        "Build_pkg:           make -j8 mtk_build"
+        "Clean:               make -j8 mtk_clean"
+        "Build_pkg__fullupg:  make -j8 mtk_build and upgmaker"
+        "Usage:               compilation usage manual"
     )
     GvMenuUtilsContentCnt=${#GvMenuUtilsContent[@]}
 
     while [ 1 -eq 1 ]; do
         Lfn_MenuUtils GvResult  "Select" 7 4 "***** Execute Action MENU (q: quit no matter what) *****"
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+        GvResultID=0
+
+        # "Build_pkg:           make -j8 mtk_build"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
             lunch
             echo
             make -j8 mtk_build 2>&1|tee make.mtk_build.log
             echo
         fi
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
+
+        # "Clean:               make -j8 mtk_clean"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
             lunch
             echo
-            rm -rf make.mtk_*.log
+            rm -rf make.mtk_*.log 2>/dev/null
             echo
             if [ -e "${GvPrjRootPath}/__${TARGET_PRODUCT}_Upg_Retail" ]; then
                 read -p "JLL: Remove \"${GvPrjRootPath}/__${TARGET_PRODUCT}_Upg_Retail if press [y]?  " LvChoice
@@ -698,28 +748,27 @@ function Fn_PhilipsTV_Compilation()
             fi
             echo
         fi
-        if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
+
+        # "Build_pkg__fullupg:  make -j8 mtk_build and upgmaker"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
             echo
-            cd ${GvPrjRootPath}/android/m-base
-            set_m
+            cd ${GvPrjRootPath}
             source build/envsetup.sh 
             lunch
             echo
-            cd ${GvPrjRootPath}/android/m-base/device/tpv/common/plf/exoplayer/exoplayerwrapper
-            mm -B 2>&1|tee    ${GvPrjRootPath}/android/m-base/exoplayerwrapper_contentexplorer.log
+            make -j8 mtk_build 2>&1|tee make.mtk_build.log
             echo
-            cd ${GvPrjRootPath}/android/m-base/device/tpv/common/app/contentexplorer
-            mm -B 2>&1|tee -a ${GvPrjRootPath}/android/m-base/exoplayerwrapper_contentexplorer.log
-            cd - >/dev/null
+            Fn_PhilipsTV_Make_Full_UPG
             echo
         fi
-       if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+
+        # "Usage:               compilation usage manual"
+        if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
             clear
 cat >&1 <<EOF
 
-      cd ${GvPrjRootPath}/android/m-base
-      set_m
+      cd ${GvPrjRootPath}
       source build/envsetup.sh 
       lunch
   
@@ -727,8 +776,23 @@ cat >&1 <<EOF
 
       make -j8 mtk_build 2>&1 | tee make.mtk_build.log
 
+      #compile upg
+      cd device/tpvision/common/sde/upg/
+
+      # Usage       :  ./upgmaker.sh product variant content
+      # product     :  product name (QM151E or QM152E or QM153E)
+      # variant     :  [r]etail
+      # content     :
+      #                [a]utorun image only
+      #                [f]ull upgrade image
+      #                [u]pgrade all image
+      #                [t]ools (Copy tvsetting like) UPGs
+      #                [p]srp for Android SRP creation
+      ./upgmaker.sh QM152E r f
+
 EOF
         fi
+
         read -t 5 -p "JLL: Back to Execute Action Menu if press [y]?  " LvChoice
         if [ x"${LvChoice}" = x"y" ]; then
             continue
@@ -776,16 +840,17 @@ declare -a GvMenuUtilsContent=(
     "Query: software version"
     "Query: mediatek version"
     "Compilation: make or make_clean"
-    "Init: obtain source code"
-    "Reset: remove code changes For current git branch"
-    "Query: all git repositore status"
-    "Checkout:  sync to latest code with aligning to TPM171E_R.0.xxx.yyy.zzz"
-    "Push: git push the changes into Master"
+    "Make Full upg Image : upg is only maked after Compilation"
+    "Make Tool upg Image : upg is only maked after Compilation"
+    "Git Push For LocalRepository To RemoteRepository"
+    "All Git Repositores Status"
+    "Sync Latest Code And Checkout Version Into ${GvCONF_TAG_Pattern}aaa.bbb.ccc.ddd"
 )
 Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
+GvResultID=0
 
 # Query: software version
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -796,7 +861,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
 fi
 
 # Query: mediatek version
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -807,7 +872,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
 fi
 
 # Compilation: make or make_clean
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -817,98 +882,195 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
     exit 0
 fi
 
-# Init: obtain source code
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+# "Make Full upg Image : upg is only maked after Compilation"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
     echo
-    __SSHCONF_Switching_Start
-    echo
-    mkdir -pv 2k16_mtk_archer_refdev
-    cd 2k16_mtk_archer_refdev
-    repo init -u ssh://url/tpv/platform/manifest -b 2k16_mtk_archer_refdev
-    repo sync
-    cd -
-    echo
-    __SSHCONF_Switching_End
+    Fn_PhilipsTV_Make_Full_UPG
     echo
     exit 0
 fi
 
-# Reset: remove code changes For current git branch
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+# "Make Tool upg Image : upg is only maked after Compilation"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
     clear
-    # Find the same level path which contains .git folder
-    Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
-    if [ ! -e "${GvBranchGitPath}" ]; then
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvBranchGitPath}\"" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path" 
-        exit 0
-    fi
     echo
-    read -p "Ask @ run 'git clean -dfx;git reset --hard HEAD' if press [y]?    "  GvChoice
+    Fn_PhilipsTV_Make_Tool_UPG
     echo
-    if [ x"${GvChoice}" = x"y" ]; then
-        cd ${GvBranchGitPath}
-        git clean -dfx
-        git reset --hard HEAD
-        git status -s
-        git log --graph \
-            --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
-            --abbrev-commit \
-            --date=relative | head -n 4 
-        cd - >/dev/null
-        echo
-    fi
     exit 0
 fi
 
-# Query: all git repositore status
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+
+# "Git Push For LocalRepository To RemoteRepository"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
+    unset GvMenuUtilsContent
+    unset GvMenuUtilsContentCnt
+    clear
+    echo
+    Fn_PhilipsTV_GitPushToMaster
+    echo
+    exit 0
+fi
+
+# "All Git Repositores Status"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
     echo
     echo
     echo
-    repo forall -c 'if [ x"$(git status -s)" != x ]; then echo;pwd;git status -s; fi' | tee All_Git_Repositories_Status.jll
+    repo forall -c 'if [ x"$(git status -s)" != x ]; then echo;pwd;git status -s; fi' \
+        | tee All_Git_Repositories_Status.jll
     echo
     echo
     exit 0
 fi
 
 
-# Checkout:  sync to latest code with aligning to TPM171E_R.0.xxx.yyy.zzz
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
+
+## Stdin_GetInput <oResult> [<prompt>]
+##
+## Stdin_GetInput  oResult  "hello world: "
+## echo "Result: $oResult"
+function Stdin_GetInput()
+{
+    if [ ! -z "$2" ]; then
+        LvSgdCmd='read -p "$2" LvSgdNum'
+    else
+        LvSgdCmd='read LvSgdNum'
+    fi
+
+    LvSgdNum=""
+    while [ -z "${LvSgdNum}" ]; do
+        eval ${LvSgdCmd}   
+        [ x"${LvSgdNum}" = x"*" ] && break;
+        [ x"${LvSgdNum}" = x"." ] && break;
+        [ x"${LvSgdNum}" = x"q" ] && break;
+        echo ${LvSgdNum} | grep -E '[^0-9]' >/dev/null && LvSgdNum="" || break;
+    done
+
+    eval $1="${LvSgdNum}"
+}
+
+
+
+## "Sync Latest Code And Checkout Version Into ${GvCONF_TAG_Pattern}aaa.bbb.ccc.ddd"
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
 
     echo
     read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
     if [ x"${GvChoice}" = x"y" ]; then
-        __SSHCONF_Switching_Start__jielong
+        unset GvChoice
+        declare -i GvPageUnit=10
+        declare -i GvMenuID=0
+        declare -a GvPageMenuUtilsContent
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync with reset"
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync without reset"
+        GvPageMenuUtilsContent[GvMenuID++]="manually sync"
+        Lfn_PageMenuUtils GvAutoChoice  "Select" 7 4 "***** SYNC MODE  (q: quit) *****"
+        GvChoice=1
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[0]}" ]; then
+            GvChoice=0
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[1]}" ]; then
+            GvChoice=1
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[2]}" ]; then
+            GvChoice=2
+        fi
+        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+        [ x"${GvMenuID}" != x ] && unset GvMenuID
+        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+ 
+        echo
         cd ${GvPrjRootPath}
-        repo sync
+        pwd
+        echo
+        if [ x"${GvChoice}" = x"2" ]; then # manually sync 
+            repo forall -c 'pwd;if [ x"$(git status -s)" != x ]; then \
+                            read -p "Jll: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                            fi; \
+                            if [ x"${__GvChoive}" = x"y" ]; then \
+                                git clean -dfx; git reset --hard HEAD; \
+                            fi; '
+            repo sync
+        else
+            if [ x"${GvChoice}" = x"1" ]; then # automatically sync without reset
+                repo sync
+            else
+                if [ x"${GvChoice}" = x"0" ]; then # automatically sync with reset
+                    repo forall -c "pwd; git clean -dfx; git reset --hard HEAD"
+                    repo sync
+                else
+                    echo "JLL: Error because unknown sync mode {manually or automatically}"
+                fi
+            fi
+        fi
+        echo
         cd -  >/dev/null
-        __SSHCONF_Switching_End
     fi
     echo
 
-    if [ ! -e "${GvPrjRootPath}/android/m-base/frameworks/.git" ]; then
+    if [ ! -e "${GvPrjRootPath}/frameworks/av/.git" ]; then
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not Present \"${GvPrjRootPath}/android/m-base/frameworks/.git\"" 
+            "JLL-Check @ Not Present \"${GvPrjRootPath}/frameworks/av/.git\"" 
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path"
         echo
         exit 0
     fi
     clear
-    cd ${GvPrjRootPath}/android/m-base/frameworks
+    a=
+    b=
+    c=
+    d=
+    isLooping=1
+    TagPTN=${GvCONF_TAG_Pattern}
+    while [ ${isLooping} -eq 1 ]; do 
+        if [ x"$a" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${CvAccOff}${CvBgYellow}${CvFgBlack}aaa${CvAccOff}.bbb.ccc.ddd ;  default by 0, * (Exit by press [q])"
+            Stdin_GetInput a "aaa="
+            [ x"$a" = x"q" ] && exit 0
+        fi
+        if [ x"$b" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${CvAccOff}${CvBgYellow}${CvFgBlack}bbb${CvAccOff}.ccc.ddd ; default by 5, * (Exit by press [q])"
+            Stdin_GetInput b "bbb="
+            [ x"$b" = x"q" ] && exit 0
+        fi
+        if [ x"$c" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${b}.${CvAccOff}${CvBgYellow}${CvFgBlack}ccc${CvAccOff}.ddd ; default by * (Exit by press [q])"
+            Stdin_GetInput c "ccc="
+            [ x"$c" = x"q" ] && exit 0
+        fi
+        if [ x"$d" = x ]; then
+            echo
+            echo -e "JLL: set ${TagPTN}${a}.${b}.${c}.${CvAccOff}${CvBgYellow}${CvFgBlack}ddd${CvAccOff} ; default by * (Exit by press [q])"
+            Stdin_GetInput d "ddd="
+            if [ x"$d" != x ]; then
+                isLooping=0
+            else
+                [ x"$d" = x"q" ] && exit 0
+            fi
+        fi
+    done
+
+    clear
+    cd ${GvPrjRootPath}/frameworks/av
     declare -i GvPageUnit=10
     declare -i GvMenuID=0
     declare -a GvPageMenuUtilsContent
-    _GvVersionList=$(git tag -l TPM171E_R.0.*)
+    TagPattern=${TagPTN}${a}.${b}.${c}.${d}
+    _GvVersionList=$(git tag -l ${TagPattern})
     cd - >/dev/null
     if [ x"${_GvVersionList}" = x ]; then
         [ x"${GvPageUnit}" != x ] && unset GvPageUnit
@@ -916,7 +1078,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
         [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
         echo
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  \
-            "JLL-Check @ Not find any version like TPM171E_R.0.* format!!!" 
+            "JLL-Check @ Not find any version like ${TagPattern} format!!!"
         Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Bye-Bye!!!"
         echo
         exit 0 
@@ -924,7 +1086,10 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     for _GvVersionEntry in ${_GvVersionList}; do
         GvPageMenuUtilsContent[GvMenuID++]="${_GvVersionEntry}"
     done
-    Fn_Sort_ThreeFields_SplitByDot "TPM171E_R" "Descend"
+    __TagPattern=${TagPattern%%\**}
+    __TagPattern=${__TagPattern/%./}
+    echo "JLL:  Fn_Sort_ThreeFields_SplitByDot \"${__TagPattern}\" \"Descend\""
+    Fn_Sort_ThreeFields_SplitByDot "${__TagPattern}" "Descend"
     Lfn_PageMenuUtils GvResult  "Select" 7 4 "***** WHICH VERSION TO CHECKOUT  (q: quit) *****"
     [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
     [ x"${GvMenuID}" != x ] && unset GvMenuID
@@ -992,37 +1157,6 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     exit 0
 fi
 
-# Push: git push the changes into Master
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
-    unset GvMenuUtilsContent
-    unset GvMenuUtilsContentCnt
-    Lfn_Sys_GetSameLevelPath  GvBranchGitPath ".git"
-    if [ ! -e "${GvBranchGitPath}" ]; then
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Path=\"${GvBranchGitPath}\"" 
-        Lfn_Sys_DbgColorEcho ${CvBgBlack} ${CvFgRed}  "Error-Exit: Cannot find Git Path" 
-        exit 0
-    fi
-    cd ${GvBranchGitPath}
-    if [ x"$(git status -s)" = x ]; then
-        echo "JLL: no any new changes to push"
-        echo
-        unset GvBranchGitPath
-        cd - >/dev/null
-        exit 0
-    fi
-    echo
-    git status -s
-    read -p "JLL: RUN 'git add -A; git commit' IF press [y], or exit?   " GvChoice
-    if [ x"${GvChoice}" = x"y" ]; then
-        git add -A
-        git commit
-        Fn_PhilipsTV_GitPushToMaster
-    fi
-    cd - >/dev/null
-    unset GvBranchGitPath
-    echo
-    exit 0
-fi
 
 unset GvMenuUtilsContent
 unset GvMenuUtilsContentCnt
