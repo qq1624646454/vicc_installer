@@ -235,7 +235,7 @@ gnTAGIECgYAamsuvGd2CKVaHrt1GrrweNYciPDB4UNGx5baizfywHxfOcQNT6/u/
 RG72swzCsdlr/uPfv/0eUDEXLPWEv5OeZ3vhvlDPYlxZ+97SHii9iA==
 -----END RSA PRIVATE KEY-----
 EOF
-    chmod 0500 ${HOME}/.ssh/id_rsa
+    chmod 0400 ${HOME}/.ssh/id_rsa
 cat >${HOME}/.ssh/config<<EOF
 
 Host url
@@ -251,7 +251,7 @@ Port 29418
 IdentityFile ~/.ssh/id_rsa
 
 EOF
-    chmod 0700 ${HOME}/.ssh/config
+    chmod 0600 ${HOME}/.ssh/config
     echo
 }
 
@@ -783,9 +783,10 @@ declare -a GvMenuUtilsContent=(
     "Push: git push the changes into Master"
 )
 Lfn_MenuUtils GvResult  "Select" 7 4 "***** MENU (q: quit no matter what) *****"
+GvResultID=0
 
 # Query: software version
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
@@ -804,7 +805,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[0]}" ]; then
 fi
 
 # Query: mediatek version
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
@@ -823,7 +824,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[1]}" ]; then
 fi
 
 # Compilation: make or make_clean
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
@@ -842,7 +843,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[2]}" ]; then
 fi
 
 # Init: obtain source code
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -862,7 +863,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[3]}" ]; then
 fi
 
 # Reset: remove code changes For current git branch
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     clear
@@ -901,7 +902,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[4]}" ]; then
 fi
 
 # Query: all git repositore status
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[5]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
@@ -924,7 +925,7 @@ fi
 
 
 # Checkout:  sync to latest code with aligning to TPM171E_R.0.xxx.yyy.zzz
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
@@ -938,11 +939,61 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
     echo
     read -p "JLL-Ask: Sync Latest Code if press [y], or not:   "  GvChoice
     if [ x"${GvChoice}" = x"y" ]; then
-        __SSHCONF_Switching_Start__jielong
+        unset GvChoice
+        declare -i GvPageUnit=10
+        declare -i GvMenuID=0
+        declare -a GvPageMenuUtilsContent
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync with reset"
+        GvPageMenuUtilsContent[GvMenuID++]="automatically sync without reset"
+        GvPageMenuUtilsContent[GvMenuID++]="manually sync"
+        Lfn_PageMenuUtils GvAutoChoice  "Select" 7 4 "***** SYNC MODE  (q: quit) *****"
+        GvChoice=1
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[0]}" ]; then
+            GvChoice=0
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[1]}" ]; then
+            GvChoice=1
+        fi
+        if [ x"${GvAutoChoice}" = x"${GvPageMenuUtilsContent[2]}" ]; then
+            GvChoice=2
+        fi
+        [ x"${GvPageMenuUtilsContent}" != x ] && unset GvPageMenuUtilsContent
+        [ x"${GvMenuID}" != x ] && unset GvMenuID
+        [ x"${GvPageUnit}" != x ] && unset GvPageUnit
+ 
+        echo
         cd ${GvPrjRootPath}
-        repo sync
-        cd -  >/dev/null
-        __SSHCONF_Switching_End
+        pwd
+        echo
+        if [ x"${GvChoice}" = x"2" ]; then # manually sync 
+            repo forall -c 'pwd;if [ x"$(git status -s)" != x ]; then \
+                            read -p "Jll: Reset Code@ $(pwd) if press [y], or not:  " __GvChoive; \
+                            fi; \
+                            if [ x"${__GvChoive}" = x"y" ]; then \
+                                git clean -dfx; git reset --hard HEAD; \
+                            fi; '
+            
+            __SSHCONF_Switching_Start__jielong
+            repo sync
+            __SSHCONF_Switching_End
+        else
+            if [ x"${GvChoice}" = x"1" ]; then # automatically sync without reset
+                __SSHCONF_Switching_Start__jielong
+                repo sync
+                __SSHCONF_Switching_End
+        else
+            else
+                if [ x"${GvChoice}" = x"0" ]; then # automatically sync with reset
+                    repo forall -c "pwd; git clean -dfx; git reset --hard HEAD"
+                    __SSHCONF_Switching_Start__jielong
+                    repo sync
+                    __SSHCONF_Switching_End
+                else
+                    echo "JLL: Error because unknown sync mode {manually or automatically}"
+                fi
+            fi
+        fi
+        echo
     fi
     echo
 
@@ -1044,7 +1095,7 @@ if [ x"${GvResult}" = x"${GvMenuUtilsContent[6]}" ]; then
 fi
 
 # Push: git push the changes into Master
-if [ x"${GvResult}" = x"${GvMenuUtilsContent[7]}" ]; then
+if [ x"${GvResult}" = x"${GvMenuUtilsContent[GvResultID++]}" ]; then
     unset GvMenuUtilsContent
     unset GvMenuUtilsContentCnt
     Lfn_Sys_GetSameLevelPath  GvPrjRootPath ".repo"
