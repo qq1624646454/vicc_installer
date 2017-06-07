@@ -454,22 +454,22 @@ function Lfn_Stdin_GetDigit()
 #####
 #####  MAIN
 #####
-if [ x"$(which realpath)" = x ]; then
-    echo
-    echo "JLL.IDE: Please install \"realpath\" first"
-    echo
-    exit 0
-fi
+#if [ x"$(which realpath)" = x ]; then
+#    echo
+#    echo "JLL.IDE: Please install \"realpath\" first"
+#    echo
+#    exit 0
+#fi
 
 
 
     # Check private ssh key
-    GvRescuePath=$(realpath ~)/.ssh.for_____release.R$(date +%Y%m%d%H%M%S)
-    if [ -e "$(realpath ~)/.ssh" ]; then
-        mv -vf $(realpath ~)/.ssh  ${GvRescuePath} 
+    GvRescuePath=${HOME}/.ssh.for_____release.R$(date +%Y%m%d%H%M%S)
+    if [ -e "${HOME}/.ssh" ]; then
+        mv -vf ${HOME}/.ssh  ${GvRescuePath} 
     fi
-    mkdir -pv $(realpath ~)/.ssh
-cat >$(realpath ~)/.ssh/id_rsa <<EOF
+    mkdir -pv ${HOME}/.ssh
+cat >${HOME}/.ssh/id_rsa <<EOF
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAwKhONxlyhpScITU0vrFnWH/wMv6w4lLADmZOhsl+UVGnDrB9
 83wiOJqA6ObodNiWT6DXL+hzg8QqLeqkqIWirrb+Yv0YJx/MoEX+KO2NGStNN42V
@@ -498,10 +498,10 @@ ayRGhF9Ehox90DkNuwv4Dk/KGHrXTXsk50rGK9w8WANu8jaz4zB59pfit5YE4Fdu
 eyHGtGQh0XNVfafkHIWBuCAihK4e2TwX+xUDuzxOiHvH8Q7rhtg4
 -----END RSA PRIVATE KEY-----
 EOF
-    chmod 0500 $(realpath ~)/.ssh/id_rsa
+    chmod 0500 ${HOME}/.ssh/id_rsa
 
     GvReleasePath="R$(date +%Y%m%d_%H%M%S)"
-    GvReleasePath="$(realpath ~)/________release_${GvReleasePath}"
+    GvReleasePath="${HOME}/________release_${GvReleasePath}"
     if [ -e ${GvReleasePath} ]; then
         rm -rvf ${GvReleasePath}
     fi
@@ -535,9 +535,9 @@ EOF
     fi
     echo
     [ -e "${GvReleasePath}" ] && rm -rf ${GvReleasePath}
-    if [ -e "$(realpath ~)/.ssh" -a -e "${GvRescuePath}" ]; then
-        rm -rf $(realpath ~)/.ssh
-        mv -f ${GvRescuePath} $(realpath ~)/.ssh
+    if [ -e "${HOME}/.ssh" -a -e "${GvRescuePath}" ]; then
+        rm -rf ${HOME}/.ssh
+        mv -f ${GvRescuePath} ${HOME}/.ssh
     fi
     unset GvRescuePath
     unset GvReleasePath
