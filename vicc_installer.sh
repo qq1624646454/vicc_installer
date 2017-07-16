@@ -510,7 +510,9 @@ EOF
     cd ${GvReleasePath}
     #git clone git@code.csdn.net:qq1624646454/vicc.git
     git clone git@github.com:qq1624646454/vicc.git
-    cd -
+    cd - 2>/dev/null
+
+
     if [ ! -e "${GvReleasePath}/vicc" ]; then
         #echo "JLL-IDE: Fail to install because git clone git@code.csdn.net:qq1624646454/vicc.git"
         echo "JLL-IDE: Fail to install because git clone git@github.com:qq1624646454/vicc.git"
@@ -520,9 +522,11 @@ EOF
         if [ -e "${GvReleasePath}/vicc/release" ]; then
             cp -rvf ${GvReleasePath}/vicc/release ${CvScriptPath} 
         fi
-        if [ -e "${GvReleasePath}/vicc/install.sh" ]; then
+        #if [ -e "${GvReleasePath}/vicc/install.sh" ]; then
+        if [ -e "${GvReleasePath}/vicc/install_with_sync.sh" ]; then
             cd ${GvReleasePath}/vicc
-            ./install.sh
+            #./install.sh
+            ./install_with_sync.sh
             cd - >/dev/null
             echo
             echo "JLL-IDE: OKay for install vicc from ${GvReleasePath}/vicc"
@@ -534,7 +538,7 @@ EOF
         fi
     fi
     echo
-    [ -e "${GvReleasePath}" ] && rm -rf ${GvReleasePath}
+#    [ -e "${GvReleasePath}" ] && rm -rf ${GvReleasePath}
     if [ -e "${HOME}/.ssh" -a -e "${GvRescuePath}" ]; then
         rm -rf ${HOME}/.ssh
         mv -f ${GvRescuePath} ${HOME}/.ssh
