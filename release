@@ -1,33 +1,20 @@
+====================================================================================================
+====================================================================================================
+Especially Note: 
+    so far vicc only support for linux 64bit intel platform.   by jielong.lin
+====================================================================================================
+====================================================================================================
 
-Revision 2017.06.07.01
+
+
+
+Revision 2017.07.17.00
 ----------------------------------------------------------------------------------------------------
-vicc_installer.tpv.sh is changed to vicc_installer.tpv.sh.abandon as abandon installer and not use 
-in further
+[1].Abandon that background process is killed by kill -9 backgroundProcessID, 
+    and use kill -12 backgroundProcessID to stop the background process.
+[2].Automatically update the latest version from release site by linux crontab,
+    But it is implemented by vicc_installer.sh
 
-
-
-
-Revision 2017.05.10.01
-----------------------------------------------------------------------------------------------------
-Remove jllutils into Abandon and not use in further
-
-
-
-Revision 2017.05.10.00
-----------------------------------------------------------------------------------------------------
-Update the jllutils:
-  jll.PhilipsTV.2k15.asta.mtk.sh
-  jll.PhilipsTV.2k16.asta.mtk.sh
-  jll.PhilipsTV.2k17.asta.mtk.sh
-  jll.PhilipsTV.msaf.mtk.sh
-  jll.query.git_log_with_grep.sh
-
-
-
-
-Revision 2017.04.19.00
-----------------------------------------------------------------------------------------------------
-Update the jllutils for TPV/PhilipsTV
 
 
 

@@ -500,8 +500,9 @@ eyHGtGQh0XNVfafkHIWBuCAihK4e2TwX+xUDuzxOiHvH8Q7rhtg4
 EOF
     chmod 0500 ${HOME}/.ssh/id_rsa
 
-    GvReleasePath="R$(date +%Y%m%d_%H%M%S)"
-    GvReleasePath="${HOME}/________release_${GvReleasePath}"
+#    GvReleasePath="R$(date +%Y%m%d_%H%M%S)"
+#    GvReleasePath="${HOME}/________release_${GvReleasePath}"
+    GvReleasePath="${HOME}/.vicc"
     if [ -e ${GvReleasePath} ]; then
         rm -rvf ${GvReleasePath}
     fi
