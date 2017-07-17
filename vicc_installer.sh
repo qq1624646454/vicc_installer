@@ -510,7 +510,8 @@ EOF
 
     cd ${GvReleasePath}
     #git clone git@code.csdn.net:qq1624646454/vicc.git
-    git clone git@github.com:qq1624646454/vicc.git
+    #git clone git@github.com:qq1624646454/vicc.git
+    git clone https://github.com/qq1624646454/vicc.git
     cd - 2>/dev/null
 
 
