@@ -1,9 +1,20 @@
 ====================================================================================================
 ====================================================================================================
-Especially Note: 
-    so far vicc only support for linux 64bit intel platform.   by jielong.lin
+
+
+
+    Especially Note: 
+        so far vicc only support for linux 64bit intel platform.   by jielong.lin
 ====================================================================================================
 ====================================================================================================
+
+
+
+
+
+
+
+
 
 
 
@@ -16,12 +27,12 @@ Revision 2017.07.26.00
 ├── autocomplete_vicc.sh                                      |
 ├── install_with_sync.sh                                      |
 ├── jllsystem                <----------------- .jllsystem ---|
-├── release                                                   |
+├── README.md                                                 |
 ├── _______vicc_auto_sync_by_GIT__in_crontab.sh               |
 ├── vim                      <----------------------- .vim ---|
 ├── vimrc                    <--------------------- .vimrc ---|
 └── vimrcs                   <-------------------- .vimrcs ---|
-
+[3].Add the new feature about Rotation Progress Status for collecting source files in vicc
 
 
 Revision 2017.07.17.01
